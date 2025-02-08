@@ -9,8 +9,8 @@ const FormLogin = () => {
   const [password, setPassword] = useState('');
 
   const onRegister = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    console.log('Usuário:', user, 'Senha:', password)
+    event.preventDefault();
+    console.log('Usuário:', user, 'Senha:', password);
     fetch(`/api/users/?login=${user}&password=${password}`, {
       method: 'GET',
       headers: {
@@ -30,7 +30,7 @@ const FormLogin = () => {
       .catch(error => {
         console.error('Error:', error);
       });
-  }
+  };
 
   return (
     <section className="login-form">
@@ -43,7 +43,7 @@ const FormLogin = () => {
           placeholder="Digite seu usuário" 
           type="text"  
           onTyping={value => setUser(value)}
-          />
+        />
         <LoginFormField 
           value={password}
           label="Senha" 
@@ -51,7 +51,7 @@ const FormLogin = () => {
           type="password" 
           onTyping={value => setPassword(value)}
           
-          />
+        />
         <LoginButton />
       </form>
     </section>
