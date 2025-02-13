@@ -19,7 +19,6 @@ const menuItems: MenuItem[] = [
 
 const Sidebar: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
 
   const toggleMenu = (label: string) => {
     setActiveMenu(activeMenu === label ? null : label);
@@ -51,7 +50,7 @@ const Sidebar: React.FC = () => {
               key={subItem.label}
               className={window.location.pathname === subItem.redirect ? "active-sub" : ""}
               onClick={() => {
-                setActiveSubMenu(subItem.label);
+                setActiveMenu(subItem.label);
                 window.location.href = subItem.redirect;
               }}
             >
