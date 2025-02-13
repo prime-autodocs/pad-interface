@@ -1,8 +1,14 @@
 import './LoginButton.css';
 
-const LoginButton = () => {
+interface LoginButtonProps {
+  isLoading: boolean;
+}
+
+const LoginButton: React.FC<LoginButtonProps> = ({ isLoading }) => {
   return (
-    <button className="login-button">Entrar</button>
+    <button className="login-button" disabled={isLoading}>
+      {isLoading ? 'Carregando...' : 'Entrar'}
+    </button>
   );
 };
 

@@ -2,34 +2,26 @@ import { useState } from 'react';
 import './FormLogin.css';
 import LoginButton from './LoginButton';
 import LoginFormField from './LoginFormField';
+import useUsersQuery from '../../../api/users/services/useUsersQuery';
 
 const FormLogin = () => {
 
   const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onRegister = (event: React.FormEvent<HTMLFormElement>) => {
+  const onRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log('Usuário:', user, 'Senha:', password);
-    fetch(`/api/users/?login=${user}&password=${password}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data) {
-          console.log('Login success');
-          // Handle login success
-        } else {
-          console.log('Login failed');
-          // Handle login failure
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
+    setIsLoading(true);
+    const response = await useUsersQuery(user, password);
+    setIsLoading(false);
+    if (response) {
+      if (response == true) {
+        window.location.href = '/home';
+      } else {
+        console.error('Login failed');
+      }
+    }
   };
 
   return (
@@ -50,9 +42,8 @@ const FormLogin = () => {
           placeholder="Digite sua senha" 
           type="password" 
           onTyping={value => setPassword(value)}
-          
         />
-        <LoginButton />
+        <LoginButton isLoading={isLoading} />
       </form>
     </section>
   );
