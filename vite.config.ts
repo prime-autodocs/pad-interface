@@ -9,6 +9,7 @@ export default defineConfig({
       '/api': {
         target: 'https://pad-api-lkii.onrender.com',
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
