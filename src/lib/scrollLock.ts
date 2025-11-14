@@ -31,4 +31,13 @@ export function unlockScroll(sourceId: string): void {
   }
 }
 
+export function resetAllScrollLocks(): void {
+  const w = window as any
+  const locks = getLocks()
+  locks.clear()
+  const prev: string | undefined = w[GLOBAL_KEY_PREV]
+  document.body.style.overflow = prev ?? ''
+  w[GLOBAL_KEY_PREV] = undefined
+}
+
 

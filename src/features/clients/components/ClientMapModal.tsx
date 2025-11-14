@@ -11,12 +11,15 @@ type Props = {
 }
 
 export default function ClientMapModal({ open, embedUrl, mapsUrl, title = 'Localização', onClose }: Props) {
-  if (!open) return null
   React.useEffect(() => {
-    lockScroll('client-map-modal')
+    if (open) {
+      lockScroll('client-map-modal')
+    } else {
+      unlockScroll('client-map-modal')
+    }
     return () => unlockScroll('client-map-modal')
-  }, [])
-  return (
+  }, [open])
+  return open ? (
     <>
       <div className={styles.backdrop} onClick={onClose} />
       <div className={styles.modal} role="dialog" aria-modal="true" aria-label="Mapa do Google">
@@ -34,7 +37,7 @@ export default function ClientMapModal({ open, embedUrl, mapsUrl, title = 'Local
         </div>
       </div>
     </>
-  )
+  ) : null
 }
 
 

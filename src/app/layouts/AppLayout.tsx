@@ -2,7 +2,7 @@ import React from 'react'
 import styles from './AppLayout.module.css'
 import Sidebar from '@app/layouts/Sidebar'
 import { Outlet, useLocation } from 'react-router-dom'
-import { lockScroll, unlockScroll } from '../../lib/scrollLock'
+import { lockScroll, unlockScroll, resetAllScrollLocks } from '../../lib/scrollLock'
 
 export default function AppLayout() {
   const [menuOpen, setMenuOpen] = React.useState(false)
@@ -15,6 +15,11 @@ export default function AppLayout() {
     if (location.pathname.startsWith('/relatorio-clientes')) return 'Relatório de Clientes'
     return 'PrimeAutoDocs'
   }
+
+  // Safety: on route changes, ensure any leaked locks are cleared
+  React.useEffect(() => {
+    resetAllScrollLocks()
+  }, [location.pathname])
 
   React.useEffect(() => {
     if (menuOpen) {
