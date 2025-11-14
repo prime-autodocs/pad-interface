@@ -116,8 +116,8 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
               padding: '12px 24px',
               borderRadius: 999,
               border: 0,
-              background: canSubmit ? 'linear-gradient(180deg, #08B6C0, #14E0D4)' : '#e7eef0',
-              color: canSubmit ? '#0b0d0f' : '#7b848a',
+              background: canSubmit ? 'var(--color-accent)' : '#e7eef0',
+              color: canSubmit ? '#ffffff' : '#7b848a',
               fontWeight: 800,
               cursor: canSubmit ? 'pointer' : 'not-allowed',
               minWidth: 220
@@ -205,7 +205,15 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
             {errors.chassis && <div className={styles.error}>{errors.chassis}</div>}
 
             <div className={styles.label}>Renavam</div>
-            <input className={styles.input} value={data.vehicle.renavam || ''} onChange={(e) => setVehicle({ renavam: e.target.value.replace(/\D/g, '').slice(0, 11) })} />
+            <input
+              className={styles.input}
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={11}
+              value={data.vehicle.renavam || ''}
+              onChange={(e) => setVehicle({ renavam: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+            />
             {errors.renavam && <div className={styles.error}>{errors.renavam}</div>}
 
             <div className={styles.label}>Ano | Modelo</div>
@@ -252,7 +260,7 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
               {data.vehicle.docPhotoUrl ? <img src={data.vehicle.docPhotoUrl} alt="Documento" /> : 'Foto do Documento'}
             </div>
             <div className={styles.upload}>
-              <button className={`${styles.btn} ${styles.primary}`} onClick={() => (document.getElementById('veh-doc-input') as HTMLInputElement)?.click()}>Enviar</button>
+              <button className={`${styles.btn} ${styles.primary}`} onClick={() => (document.getElementById('veh-doc-input') as HTMLInputElement)?.click()}>Carregar imagem</button>
               <input id="veh-doc-input" type="file" accept="image/*" hidden onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) setVehicle({ docPhotoUrl: URL.createObjectURL(f) })

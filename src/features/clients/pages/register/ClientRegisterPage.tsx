@@ -15,6 +15,11 @@ function isValidCNPJ(doc: string) {
 
 type Step = 'personal' | 'docs' | 'address' | 'success'
 
+const BRAZIL_UFS = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'
+]
+
 function PersonalStep({ onNext }: { onNext: () => void }) {
   const { data, setPersonal } = useClientRegister()
   const [errors, setErrors] = React.useState<Record<string, string>>({})
@@ -60,7 +65,16 @@ function PersonalStep({ onNext }: { onNext: () => void }) {
         </select>
 
         <div className={styles.label}>{data.personal.documentType}</div>
-        <input className={styles.input} value={data.personal.document} onChange={(e) => setPersonal({ document: e.target.value })} placeholder={data.personal.documentType === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'} />
+        <input
+          className={styles.input}
+          type="tel"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={data.personal.documentType === 'CPF' ? 11 : 14}
+          value={data.personal.document}
+          onChange={(e) => setPersonal({ document: e.target.value.replace(/\D/g, '') })}
+          placeholder={data.personal.documentType === 'CPF' ? '000.000.000-00' : '00.000.000/0000-00'}
+        />
         {errors.document && <div className={styles.error}>{errors.document}</div>}
 
         <div className={styles.label}>Nascimento</div>
@@ -94,11 +108,20 @@ function PersonalStep({ onNext }: { onNext: () => void }) {
         </select>
 
         <div className={styles.label}>Telefone</div>
-        <input className={styles.input} value={data.personal.phone} onChange={(e) => setPersonal({ phone: e.target.value })} />
+        <input
+          className={styles.input}
+          type="tel"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={11}
+          value={data.personal.phone}
+          onChange={(e) => setPersonal({ phone: e.target.value.replace(/\D/g, '') })}
+          placeholder="DDD + número (somente dígitos)"
+        />
         {errors.phone && <div className={styles.error}>{errors.phone}</div>}
 
         <div className={styles.label}>E-mail</div>
-        <input className={styles.input} value={data.personal.email || ''} onChange={(e) => setPersonal({ email: e.target.value })} />
+        <input className={styles.input} type="email" value={data.personal.email || ''} onChange={(e) => setPersonal({ email: e.target.value })} />
         {errors.email && <div className={styles.error}>{errors.email}</div>}
       </div>
         </div>
@@ -108,7 +131,7 @@ function PersonalStep({ onNext }: { onNext: () => void }) {
             {data.personal.photoUrl ? <img src={data.personal.photoUrl} alt="Foto do cliente" /> : 'Foto do Cliente'}
           </div>
           <div className={styles.upload}>
-            <button className={`${styles.btn} ${styles.primary}`} onClick={() => fileRef.current?.click()}>Enviar</button>
+            <button className={`${styles.btn} ${styles.primary}`} onClick={() => fileRef.current?.click()}>Carregar imagem</button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => {
               const f = e.target.files?.[0]
               if (f) setPersonal({ photoUrl: URL.createObjectURL(f) })
@@ -144,7 +167,16 @@ function DocumentsStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
         <input className={styles.input} type="date" value={data.docs.dataExpedicao || ''} onChange={(e) => setDocs({ dataExpedicao: e.target.value })} />
 
         <div className={styles.label}>UF Expedidor</div>
-        <input className={styles.input} value={data.docs.ufExpedidor || ''} onChange={(e) => setDocs({ ufExpedidor: e.target.value })} />
+        <select
+          className={styles.select}
+          value={data.docs.ufExpedidor || ''}
+          onChange={(e) => setDocs({ ufExpedidor: e.target.value })}
+        >
+          <option value="">Selecione</option>
+          {BRAZIL_UFS.map((uf) => (
+            <option key={uf} value={uf}>{uf}</option>
+          ))}
+        </select>
 
         <div className={styles.label}>CNH</div>
         <input className={styles.input} value={data.docs.cnh || ''} onChange={(e) => setDocs({ cnh: e.target.value })} />
@@ -167,7 +199,7 @@ function DocumentsStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
               {data.docs.photoCnh ? <img src={data.docs.photoCnh} alt="Foto da CNH" /> : 'Foto da CNH'}
             </div>
             <div className={styles.upload}>
-              <button className={`${styles.btn} ${styles.primary}`} onClick={() => cnhInputRef.current?.click()}>Enviar</button>
+              <button className={`${styles.btn} ${styles.primary}`} onClick={() => cnhInputRef.current?.click()}>Carregar imagem</button>
               <input ref={cnhInputRef} type="file" accept="image/*" hidden onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) setDocs({ photoCnh: URL.createObjectURL(f) })
@@ -181,7 +213,7 @@ function DocumentsStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
               {data.docs.photoPermissao ? <img src={data.docs.photoPermissao} alt="Foto da Permissão" /> : 'Foto da Permissão'}
             </div>
             <div className={styles.upload}>
-              <button className={`${styles.btn} ${styles.primary}`} onClick={() => permInputRef.current?.click()}>Enviar</button>
+              <button className={`${styles.btn} ${styles.primary}`} onClick={() => permInputRef.current?.click()}>Carregar imagem</button>
               <input ref={permInputRef} type="file" accept="image/*" hidden onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) setDocs({ photoPermissao: URL.createObjectURL(f) })

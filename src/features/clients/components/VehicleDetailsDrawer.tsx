@@ -1,6 +1,7 @@
 import React from 'react'
 import styles from './ClientDetailsDrawer.module.css'
 import { Client, Vehicle } from '../data/mock'
+import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
 
 type Props = {
   open: boolean
@@ -14,6 +15,10 @@ export default function VehicleDetailsDrawer({ open, client, vehicle, onClose }:
   React.useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true))
     return () => cancelAnimationFrame(id)
+  }, [])
+  React.useEffect(() => {
+    lockScroll('vehicle-details-drawer')
+    return () => unlockScroll('vehicle-details-drawer')
   }, [])
   function handleClose() {
     setVisible(false)

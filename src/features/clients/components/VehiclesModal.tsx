@@ -2,6 +2,7 @@ import React from 'react'
 import styles from './VehiclesModal.module.css'
 import { Client, Vehicle } from '../data/mock'
 import VehicleDetailsDrawer from './VehicleDetailsDrawer'
+import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
 
 type Props = {
   open: boolean
@@ -40,6 +41,10 @@ function ensureVehicles(client: Client): Vehicle[] {
 
 export default function VehiclesModal({ open, client, onClose }: Props) {
   if (!open || !client) return null
+  React.useEffect(() => {
+    lockScroll('vehicles-modal')
+    return () => unlockScroll('vehicles-modal')
+  }, [])
   const vehicles = ensureVehicles(client)
   const doc = client.documentType === 'CPF' ? formatCpf(client.document) : formatCnpj(client.document)
   const useScroll = vehicles.length > 5

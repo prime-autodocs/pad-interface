@@ -4,6 +4,7 @@ import { Client, clientsMock, clientTypes, ClientType } from '../data/mock'
 import ClientDetailsDrawer from '../components/ClientDetailsDrawer'
 import VehiclesModal from '../components/VehiclesModal'
 import { useNavigate } from 'react-router-dom'
+import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
 
 function normalize(str: string) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -52,7 +53,14 @@ export default function ClientsReportPage() {
   const [page, setPage] = React.useState(1)
   const [selected, setSelected] = React.useState<Client | null>(null)
   const [vehiclesFor, setVehiclesFor] = React.useState<Client | null>(null)
+  const [fabOpen, setFabOpen] = React.useState(false)
   const navigate = useNavigate()
+  React.useEffect(() => {
+    if (fabOpen) {
+      lockScroll('fab-menu')
+      return () => unlockScroll('fab-menu')
+    }
+  }, [fabOpen])
 
   const filtered = React.useMemo(() => {
     const q = normalize(query.trim())
@@ -84,12 +92,16 @@ export default function ClientsReportPage() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <input
-            className={styles.search}
-            placeholder="#Busca (min. 3 caracteres) por Nome, Placa ou CPF/CNPJ"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <div className={styles.searchGroup}>
+            <label htmlFor="searchClients" className={styles.searchLabel}>Busca</label>
+            <input
+              id="searchClients"
+              className={styles.search}
+              placeholder="Buscar por Nome, Placa ou CPF/CNPJ (min. 3 caracteres)"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
           <select
             className={styles.select}
             value={typeFilter}
@@ -101,8 +113,8 @@ export default function ClientsReportPage() {
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
-          <button className={styles.chip} title="Cadastrar novo cliente" onClick={() => navigate('/clientes')}>
-            Cadastrar
+          <button className={[styles.chip, styles.newBtn].join(' ')} title="Novo cliente" onClick={() => navigate('/clientes')}>
+            Novo Cliente
           </button>
         </div>
 
@@ -145,15 +157,18 @@ export default function ClientsReportPage() {
               <div className={styles.cardLine}><span className={styles.k}>Documento:</span> <span className={styles.v}>{getMaskedDocument(c)}</span></div>
               <div className={styles.cardRow}>
                 <div><span className={styles.k}>Tipo:</span> <span className={styles.v}>{c.tipo}</span></div>
-                <div>
-                  <span className={styles.k}>Veículos:</span>{' '}
-                  <span
-                    className={[styles.badge, c.veiculos === 0 ? styles.badgeMuted : ''].join(' ').trim()}
-                    onClick={(e) => { e.stopPropagation(); setVehiclesFor(c) }}
-                  >
+                <button
+                  type="button"
+                  className={styles.vehiclesBtn}
+                  onClick={(e) => { e.stopPropagation(); setVehiclesFor(c) }}
+                  disabled={c.veiculos === 0}
+                  title={c.veiculos === 0 ? 'Sem veículos' : 'Ver veículos'}
+                >
+                  <span className={styles.k}>Veículos:</span>
+                  <span className={[styles.badge, c.veiculos === 0 ? styles.badgeMuted : ''].join(' ').trim()}>
                     {c.veiculos}
                   </span>
-                </div>
+                </button>
               </div>
             </div>
           ))}
@@ -192,6 +207,32 @@ export default function ClientsReportPage() {
         {selected && <ClientDetailsDrawer open={!!selected} client={selected} onClose={() => setSelected(null)} />}
         {vehiclesFor && <VehiclesModal open={!!vehiclesFor} client={vehiclesFor} onClose={() => setVehiclesFor(null)} />}
       </>
+      {/* FAB mobile */}
+      {fabOpen && <div className={styles.fabBackdrop} onClick={() => setFabOpen(false)} />}
+      <div className={styles.fabWrap}>
+        <button
+          className={[styles.fab, fabOpen ? styles.fabOpen : ''].join(' ').trim()}
+          aria-label="Ações rápidas"
+          aria-expanded={fabOpen}
+          onClick={() => setFabOpen((v) => !v)}
+        >
+          +
+        </button>
+        <div className={[styles.fabMenu, fabOpen ? styles.fabMenuOpen : ''].join(' ').trim()}>
+          <button
+            className={styles.fabAction}
+            onClick={() => { setFabOpen(false); navigate('/clientes') }}
+          >
+            Novo Cliente
+          </button>
+          <button
+            className={styles.fabAction}
+            onClick={() => { setFabOpen(false); navigate('/veiculos') }}
+          >
+            Novo Veículo
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -5,8 +5,8 @@
   padding: 14px 24px;
   border: 0;
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
-  color: #0b0d0f;
+  background: var(--color-accent);
+  color: #ffffff;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -15,10 +15,11 @@
   transition: transform 0.05s ease-in-out, filter 0.2s ease-in-out;
 }
 .button:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.06);
 }
 .button:active {
   transform: translateY(1px);
+  filter: brightness(0.94);
 }
 .fullWidth {
   width: 100%;

@@ -56,7 +56,9 @@
   height: 32px;
   border-radius: 8px;
   cursor: pointer;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
 }
+.close:active { filter: brightness(1.06); transform: translateY(1px); }
 .content {
   padding: 20px 24px;
   overflow: auto;
@@ -115,12 +117,16 @@
 .mapBtn {
   display: inline-block;
   padding: 10px 16px;
-  background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
-  color: #0b0d0f;
+  border: 0;
+  background: var(--color-accent);
+  color: #ffffff;
   font-weight: 700;
   border-radius: 12px;
   text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
 }
+.mapBtn:active { filter: brightness(1.06); transform: translateY(1px); }
 .muted {
   color: #7b848a;
 }

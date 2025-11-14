@@ -17,10 +17,24 @@ body {
   background: radial-gradient(1200px 800px at 30% 20%, var(--color-bg-2), var(--color-bg-1));
   background-attachment: fixed;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent; /* remove highlight azul global */
 }
 
 input, button {
   font-family: inherit;
+}
+
+/* Remover highlight/tap azul em elementos clicáveis, mantendo foco acessível */
+a, button, input, textarea, select, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+/* Foco visível com a cor do tema (aparece apenas via teclado) */
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20,224,212,0.35);
+  border-radius: 8px;
 }
 
 .brand-accent {

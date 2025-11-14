@@ -14,12 +14,23 @@
   align-items: center;
   margin-bottom: 12px;
 }
+.searchGroup {
+  display: grid;
+  gap: 6px;
+}
+.searchLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b747a;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
 .search {
   height: 42px;
   border-radius: 999px;
   border: 2px solid var(--color-border);
   padding: 0 16px;
-  background: #f0f6f7;
+  background: #ffffff;
   color: #0f1115;
   outline: none;
 }
@@ -30,7 +41,9 @@
   color: var(--color-accent);
   background: transparent;
   cursor: pointer;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
 }
+.chip:active { filter: brightness(1.06); transform: translateY(1px); }
 .chipActive {
   background: var(--color-accent);
   color: #0d1012;
@@ -65,8 +78,30 @@
   justify-content: space-between;
   align-items: center;
 }
+.vehiclesBtn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: 30px;
+  background: var(--color-accent); /* igual ao badge */
+  color: #ffffff;      /* igual ao badge */
+  cursor: pointer;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
+}
+.vehiclesBtn .k { color: inherit; } /* texto herda a cor do botão */
+.vehiclesBtn:disabled {
+  border-color: #d3dde1;
+  background: #e0e5e8;
+  color: #6b747a;
+  cursor: not-allowed;
+}
+.vehiclesBtn:active { filter: brightness(1.06); transform: translateY(1px); }
 .k {
-  font-weight: 700;
+  font-weight: 500;
+  font-size: 14px;
   color: #6b747a;
 }
 .v {
@@ -90,7 +125,7 @@
   display: inline-block;
   min-width: 34px;
   text-align: center;
-  padding: 6px 10px;
+  padding: 2px;
   border-radius: 999px;
   font-weight: 700;
   background: #e6f7f8;
@@ -134,6 +169,8 @@
   display: inline-flex;
   gap: 6px;
 }
+.newMobile { display: none; }
+.newBtn { display: inline-block; }
 .pageBtn {
   min-width: 28px;
   height: 28px;
@@ -142,10 +179,72 @@
   background: #e7eef0;
   color: #4b5661;
   cursor: pointer;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
 }
 .pageActive {
   background: #08B6C0;
   color: #fff;
+}
+.pageBtn:active { filter: brightness(1.06); transform: translateY(1px); }
+/* FAB (hidden by default, visible only on mobile) */
+.fabWrap { display: none; }
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--color-accent);
+  color: #ffffff;
+  font-size: 32px;
+  line-height: 0;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  cursor: pointer;
+  transition: transform 220ms ease;
+  -webkit-tap-highlight-color: transparent; /* remove highlight azul no iOS/Android */
+  outline: none;
+}
+.fab:focus { outline: none; }
+.fab:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(20,224,212,0.35),
+    0 10px 24px rgba(0,0,0,0.18);
+}
+.fabOpen { transform: rotate(45deg); }
+.fabMenu {
+  position: absolute;
+  bottom: 70px;
+  left: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  transform: translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+}
+.fabMenuOpen { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.fabAction {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--color-accent);
+  color: var(--color-accent);
+  background: #ffffff;
+  font-weight: 700;
+  white-space: nowrap; /* evita quebra de linha dentro do botão */
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
+}
+.fabAction:active { filter: brightness(1.06); transform: translateY(1px); }
+/* Backdrop shown when FAB is open (mobile only) */
+.fabBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 850; /* abaixo do sidebar */
 }
 
 /* Responsividade */
@@ -174,6 +273,20 @@
   .cards {
     display: grid;
   }
+  .cardRow {
+    margin-top: 15px;
+  }
+  .newBtn { display: none; }
+  .newMobile { display: block; margin-top: 10px; text-align: center; }
+  .newMobile .chip { width: 100%; }
+  .vehiclesBtn { width: auto; }
+  .fabWrap {
+    display: block;
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 900; /* abaixo do drawer do sidebar (1001) */
+  }
 }
 
 @media (max-width: 480px) {
@@ -187,4 +300,5 @@
     min-width: 580px;
   }
 }
+ 
 

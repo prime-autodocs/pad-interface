@@ -1,6 +1,8 @@
 import React from 'react'
 import styles from './ClientDetailsDrawer.module.css'
 import { Client } from '../data/mock'
+import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
+import ClientMapModal from './ClientMapModal'
 
 type Props = {
   open: boolean
@@ -18,10 +20,15 @@ function formatDate(iso?: string) {
 export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
   if (!client) return null
   const [visible, setVisible] = React.useState(false)
+  const [showMap, setShowMap] = React.useState(false)
   React.useEffect(() => {
     // Defer to next frame to allow CSS transition from translateX(100%) -> 0
     const id = requestAnimationFrame(() => setVisible(true))
+    lockScroll('client-details-drawer')
     return () => cancelAnimationFrame(id)
+  }, [])
+  React.useEffect(() => {
+    return () => unlockScroll('client-details-drawer')
   }, [])
   function handleClose() {
     setVisible(false)
@@ -38,6 +45,11 @@ export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
         `${addr.street}, ${addr.city} - ${addr.state}, ${addr.zip}`
       )}`
     : '#'
+  const embedUrl = addr
+    ? `https://maps.google.com/maps?q=${encodeURIComponent(
+        `${addr.street}, ${addr.city} - ${addr.state}, ${addr.zip}`
+      )}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+    : ''
 
   const validExpired =
     client.cnh?.validade ? new Date(client.cnh.validade) < new Date() : false
@@ -128,13 +140,22 @@ export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
             <div className={styles.label}>Endereço</div>
             <div className={[styles.value, styles.address].join(' ')}>{addressStr}</div>
             {addr && (
-              <a className={styles.mapBtn} href={mapsUrl} target="_blank" rel="noreferrer">
+              <button className={styles.mapBtn} onClick={() => setShowMap(true)}>
                 Ver no Mapa
-              </a>
+              </button>
             )}
           </div>
         </div>
       </aside>
+      {addr && (
+        <ClientMapModal
+          open={showMap}
+          embedUrl={embedUrl}
+          mapsUrl={mapsUrl}
+          title="Endereço do Cliente"
+          onClose={() => setShowMap(false)}
+        />
+      )}
     </>
   )
 }

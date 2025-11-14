@@ -79,7 +79,9 @@
   padding: 8px 14px;
   border-radius: 10px;
   cursor: pointer;
+  transition: filter 0.2s ease-in-out, transform 0.05s ease-in-out;
 }
+.closeBtn:active { filter: brightness(1.06); transform: translateY(1px); }
 
 /* Responsivo modal veículos */
 @media (max-width: 640px) {
