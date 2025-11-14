@@ -1,0 +1,75 @@
+@import url('@styles/theme/variables.css');
+
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: linear-gradient(to right, #0c0d10 0 240px, #eef3f4 240px 100%);
+  color: #0f1115;
+  overflow-x: hidden;
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  overflow-x: hidden;
+}
+.header {
+  background: #dfe6e7;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header h1 {
+  margin: 0;
+  font-size: 32px;
+  color: #5b646b;
+  font-weight: 600;
+}
+.burger {
+  display: none;
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+    background: #eef3f4;
+  }
+  .burger {
+    display: inline-block;
+  }
+}
+
+@media (max-width: 640px) {
+  .header h1 {
+    font-size: 24px;
+  }
+}
+
+/* Drawer mobile */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(82vw, 300px);
+  background: #0c0d10;
+  z-index: 1001;
+  box-shadow: 8px 0 24px rgba(0,0,0,0.3);
+  display: flex;
+}
+
+

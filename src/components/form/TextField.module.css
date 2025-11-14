@@ -1,0 +1,28 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.label {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.input {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 2px solid var(--color-border);
+  background: #0f1115;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.input::placeholder {
+  color: var(--color-text-dim);
+}
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(20, 224, 212, 0.2);
+}
+
+

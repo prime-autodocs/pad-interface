@@ -1,0 +1,79 @@
+.container {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  min-height: 100vh;
+}
+
+.left {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding-left: 6vw;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  transform: translateX(-6%);
+}
+.logo {
+  width: min(640px, 55vw);
+  height: auto;
+  filter: drop-shadow(0 20px 50px rgba(0,0,0,0.45));
+}
+.car {
+  width: min(260px, 22vw);
+  height: auto;
+  opacity: 0.95;
+}
+
+.right {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.card {
+  width: min(520px, 86%);
+  background: var(--color-surface);
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+  padding: 42px 36px 36px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.title {
+  margin: 0 0 28px;
+  font-size: clamp(28px, 3vw, 44px);
+  font-weight: 700;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.error {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+@media (max-width: 1080px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  .left {
+    padding: 56px 24px 0;
+  }
+  .brand {
+    justify-content: center;
+    transform: none;
+  }
+  .right {
+    padding-top: 0;
+  }
+  .card {
+    margin: 0 0 40px;
+  }
+}
+
+

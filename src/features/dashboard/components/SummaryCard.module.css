@@ -1,0 +1,54 @@
+.card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 26px;
+  background: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.05), 0 8px 30px rgba(0,0,0,0.08);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--summary-accent, #08B6C0);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.value {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--summary-number, #0f1115);
+  line-height: 1;
+}
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--summary-label, #0a9fa9);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.iconWrap {
+  width: 88px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+}
+.icon {
+  max-width: 72px;
+  max-height: 48px;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 0 rgba(0,0,0,0.03));
+}
+
+

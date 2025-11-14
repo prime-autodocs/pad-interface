@@ -1,0 +1,27 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
+  color: #0b0d0f;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.05s ease-in-out, filter 0.2s ease-in-out;
+}
+.button:hover {
+  filter: brightness(1.05);
+}
+.button:active {
+  transform: translateY(1px);
+}
+.fullWidth {
+  width: 100%;
+}
+
+

@@ -1,0 +1,15 @@
+:root {
+  --color-bg-1: #0e0f11;
+  --color-bg-2: #1b1d21;
+  --color-surface: #17181b;
+  --color-border: #1f2b2f;
+  --color-text: #e9e9ea;
+  --color-text-dim: #a9adb3;
+  --color-accent: #08b6c0;
+  --color-accent-2: #14e0d4;
+  --radius-lg: 24px;
+  --radius-md: 12px;
+  --shadow-card: 0 10px 30px rgba(0,0,0,0.45);
+  --font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+}
+

@@ -1,0 +1,42 @@
+@import url('../theme/variables.css');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: radial-gradient(1200px 800px at 30% 20%, var(--color-bg-2), var(--color-bg-1));
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+input, button {
+  font-family: inherit;
+}
+
+.brand-accent {
+  color: var(--color-accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+
