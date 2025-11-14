@@ -3,12 +3,17 @@
   flex-direction: column;
   gap: 8px;
 }
+.inputWrap {
+  position: relative;
+  display: flex;
+}
 .label {
   color: var(--color-text);
   font-weight: 600;
 }
 .input {
   height: 44px;
+  flex: 1;
   padding: 0 14px;
   border-radius: 10px;
   border: 2px solid var(--color-border);
@@ -17,12 +22,33 @@
   outline: none;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
+.withEnd {
+  padding-right: 44px;
+}
 .input::placeholder {
   color: var(--color-text-dim);
 }
 .input:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(20, 224, 212, 0.2);
+}
+.endSlot {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.endSlot:active {
+  filter: brightness(1.06);
 }
 
 

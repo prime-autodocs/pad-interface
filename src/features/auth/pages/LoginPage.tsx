@@ -5,11 +5,14 @@ import TextField from '@components/form/TextField'
 import BrandLogo from '@assets/images/brand-logo.png'
 import { authenticate } from '@services/auth/mockAuth'
 import { useNavigate } from 'react-router-dom'
+import Eye from '@assets/icons/eye.png'
+import EyeOff from '@assets/icons/eye-off.png'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
 
@@ -39,18 +42,28 @@ export default function LoginPage() {
           <form className={styles.form} onSubmit={handleSubmit}>
             <TextField
               label="Login"
-              placeholder="Placeholder"
+              placeholder="Digite seu login"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
             />
             <TextField
               label="Senha"
-              placeholder="Placeholder"
-              type="password"
+              placeholder="Digite sua senha"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              endSlot={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  style={{ all: 'unset', cursor: 'pointer', color: 'inherit', display: 'grid', placeItems: 'center' }}
+                >
+                  <img className={styles.eyeIcon} src={showPassword ? EyeOff : Eye} alt="" />
+                </button>
+              }
             />
             {error && <div className={styles.error}>{error}</div>}
             <Button fullWidth disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</Button>
