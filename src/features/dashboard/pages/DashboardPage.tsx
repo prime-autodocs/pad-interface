@@ -26,10 +26,10 @@ export default function DashboardPage() {
   const [periodNovos, setPeriodNovos] = React.useState<Period>('mensal')
   const [periodServ, setPeriodServ] = React.useState<Period>('mensal')
   const cardsMeta = React.useMemo(() => ([
-    { id: 'clientes', label: 'CLIENTES CADASTRADOS', icon: '/src/assets/icons/summary/users.png', accent: '#111214', numberColor: '#111214', labelColor: '#111214' },
-    { id: 'veiculos', label: 'VEÍCULOS CADASTRADOS', icon: '/src/assets/icons/summary/car.png', accent: '#0a9fa9', numberColor: '#0a9fa9', labelColor: '#0a9fa9' },
-    { id: 'novos_clientes', label: 'NOVOS CLIENTES', icon: '/src/assets/icons/summary/new-clients.png', accent: '#14e0d4', numberColor: '#14e0d4', labelColor: '#14e0d4' },
-    { id: 'servicos', label: 'SERVIÇOS REALIZADOS', icon: '/src/assets/icons/summary/services.png', accent: '#0a9fa9', numberColor: '#0a9fa9', labelColor: '#0a9fa9' }
+    { id: 'clientes', label: 'CLIENTES CADASTRADOS', icon: '/src/assets/icons/users.png', accent: '#111214', numberColor: '#111214', labelColor: '#111214' },
+    { id: 'veiculos', label: 'VEÍCULOS CADASTRADOS', icon: '/src/assets/icons/car.png', accent: '#0a9fa9', numberColor: '#0a9fa9', labelColor: '#0a9fa9' },
+    { id: 'novos_clientes', label: 'NOVOS CLIENTES', icon: '/src/assets/icons/new-clients.png', accent: '#14e0d4', numberColor: '#14e0d4', labelColor: '#14e0d4' },
+    { id: 'servicos', label: 'SERVIÇOS REALIZADOS', icon: '/src/assets/icons/services.png', accent: '#0a9fa9', numberColor: '#0a9fa9', labelColor: '#0a9fa9' }
   ]), [])
   const [values, setValues] = React.useState<Record<string, number | string | undefined>>({})
   const [loadingCards, setLoadingCards] = React.useState(true)
