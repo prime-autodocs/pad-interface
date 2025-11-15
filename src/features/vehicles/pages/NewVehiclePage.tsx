@@ -2,7 +2,7 @@ import React from 'react'
 import { clientsMock, Client } from '../../clients/data/mock'
 import styles from '../../clients/pages/register/ClientRegisterPage.module.css'
 import { VehicleRegisterProvider, useVehicleRegister } from '../context/VehicleRegisterContext'
-import successImage from '@assets/icons/summary/success-icon.png'
+import successImage from '@assets/icons/success-icon.png'
 import { useNavigate } from 'react-router-dom'
 
 function normalize(str: string) {

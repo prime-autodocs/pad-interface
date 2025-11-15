@@ -1,6 +1,6 @@
 import React from 'react'
 import styles from './ClientRegisterPage.module.css'
-import successImage from '@assets/icons/summary/success-icon.png'
+import successImage from '@assets/icons/success-icon.png'
 import { ClientRegisterProvider, useClientRegister, DocumentType, ClientKind } from '../../context/ClientRegisterContext'
 import { useNavigate } from 'react-router-dom'
 
