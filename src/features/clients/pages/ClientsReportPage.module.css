@@ -144,6 +144,19 @@
   background: #e0e5e8;
   color: #6b747a;
 }
+.badgeBtn {
+  all: unset;
+  display: inline-block;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Desktop: nas linhas da tabela, mostrar só a bolinha; já usamos badgeBtn lá */
+/* Mobile: nos cards, mostrar o botão "Veículos: {n}" (vehiclesBtn) */
+@media (max-width: 640px) {
+  .vehiclesBtn {
+    display: inline-flex;
+  }
+}
 .footer {
   display: flex;
   align-items: center;

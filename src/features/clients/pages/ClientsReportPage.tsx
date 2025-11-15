@@ -3,8 +3,11 @@ import styles from './ClientsReportPage.module.css'
 import { clientTypes, ClientType, type Client } from '../data/mock'
 import { useNavigate } from 'react-router-dom'
 import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
-import { fetchReportsList, type ReportItem, fetchCustomerDetails, type CustomerDetails } from '@services/reports/apiReports'
+import { fetchReportsList, type ReportItem, fetchCustomerDetails, type CustomerDetails, fetchVehicleDetails, type VehicleDetails } from '@services/reports/apiReports'
+import { fetchVehiclesByCustomer, type VehicleListItem } from '@services/vehicles/apiVehicles'
 import ClientDetailsDrawer from '../components/ClientDetailsDrawer'
+import VehicleDetailsDrawer from '../components/VehicleDetailsDrawer'
+import VehiclesModal from '../components/VehiclesModal'
 
 function normalize(str: string) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -44,6 +47,29 @@ export default function ClientsReportPage() {
     driverLicenseImage?: string
     smtrPermissionImage?: string
   } | undefined>(undefined)
+  const [vehModalOpen, setVehModalOpen] = React.useState(false)
+  const [vehModalLoading, setVehModalLoading] = React.useState(false)
+  const [vehModalError, setVehModalError] = React.useState<string | null>(null)
+  const [vehList, setVehList] = React.useState<VehicleListItem[]>([])
+  const [vehDrawerOpen, setVehDrawerOpen] = React.useState(false)
+  const [vehDrawerLoading, setVehDrawerLoading] = React.useState(false)
+  const [vehDetails, setVehDetails] = React.useState<VehicleDetails | null>(null)
+  const [vehClientName, setVehClientName] = React.useState<string | null>(null)
+  const [vehClientDocLabel, setVehClientDocLabel] = React.useState<string | null>(null)
+  const [vehDrawerError, setVehDrawerError] = React.useState<string | null>(null)
+
+  function formatDocLabel(taxId: string): string {
+    const d = taxId.replace(/\D/g, '')
+    if (d.length === 11) {
+      const cpf = d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+      return `CPF ${cpf}`
+    }
+    if (d.length === 14) {
+      const cnpj = d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2}\.\d{3})(\d)/, '$1.$2').replace(/^(\d{2}\.\d{3}\.\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d)/, '$1-$2')
+      return `CNPJ ${cnpj}`
+    }
+    return taxId
+  }
   const navigate = useNavigate()
   React.useEffect(() => {
     if (fabOpen) {
@@ -156,6 +182,40 @@ export default function ClientsReportPage() {
     }
   }
 
+  async function openVehicles(c: ReportItem) {
+    setVehModalOpen(true)
+    setVehModalLoading(true)
+    setVehModalError(null)
+    setVehList([])
+    setVehClientName(c.name)
+    setVehClientDocLabel(formatDocLabel(c.tax_id))
+    try {
+      const list = await fetchVehiclesByCustomer(c.id)
+      setVehList(list)
+    } catch (e) {
+      setVehModalError(e instanceof Error ? e.message : 'Erro ao carregar veículos')
+    } finally {
+      setVehModalLoading(false)
+    }
+  }
+
+  async function openVehicleDetails(vehicleId: string | number) {
+    // garante que erros não apareçam no modal de listagem
+    setVehModalError(null)
+    setVehDrawerOpen(true)
+    setVehDrawerLoading(true)
+    setVehDetails(null)
+    setVehDrawerError(null)
+    try {
+      const det = await fetchVehicleDetails(vehicleId)
+      setVehDetails(det)
+    } catch (e) {
+      setVehDrawerError(e instanceof Error ? e.message : 'Erro ao carregar detalhes do veículo')
+    } finally {
+      setVehDrawerLoading(false)
+    }
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.card}>
@@ -208,9 +268,15 @@ export default function ClientsReportPage() {
                 <td className={styles.cell}>{maskTaxId(c.tax_id)}</td>
                 <td className={styles.cell}>{c.customer_type}</td>
                 <td className={styles.cell}>
-                  <span className={styles.badge}>
-                    {c.total_veihicles ?? 0}
-                  </span>
+                  <button
+                    className={styles.badgeBtn}
+                    onClick={(e) => { e.stopPropagation(); openVehicles(c) }}
+                    title="Ver veículos do cliente"
+                  >
+                    <span className={styles.badge}>
+                      {(c as any).total_veihicles ?? (c as any).total_vehicles ?? 0}
+                    </span>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -255,12 +321,17 @@ export default function ClientsReportPage() {
                   <div className={styles.cardLine}><span className={styles.k}>Documento:</span> <span className={styles.v}>{maskTaxId(c.tax_id)}</span></div>
                   <div className={styles.cardRow}>
                     <div><span className={styles.k}>Tipo:</span> <span className={styles.v}>{c.customer_type}</span></div>
-                    <div className={styles.vehiclesBtn} title="Veículos">
+                    <button
+                      type="button"
+                      className={styles.vehiclesBtn}
+                      title="Veículos"
+                      onClick={(e) => { e.stopPropagation(); openVehicles(c) }}
+                    >
                       <span className={styles.k}>Veículos:</span>
                       <span className={styles.badge}>
-                        {c.total_veihicles ?? 0}
+                        {(c as any).total_veihicles ?? (c as any).total_vehicles ?? 0}
                       </span>
-                    </div>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -296,6 +367,23 @@ export default function ClientsReportPage() {
         </div>
       </div>
       <ClientDetailsDrawer open={detailsOpen} client={selected} loading={detailsLoading} documents={drawerDocs} onClose={() => { setSelected(null); setDetailsOpen(false) }} />
+      <VehiclesModal
+        open={vehModalOpen}
+        loading={vehModalLoading}
+        error={vehModalError}
+        items={vehList}
+        clientName={vehClientName}
+        clientDocLabel={vehClientDocLabel}
+        onClose={() => setVehModalOpen(false)}
+        onOpenVehicle={(id) => openVehicleDetails(id)}
+      />
+      <VehicleDetailsDrawer
+        open={vehDrawerOpen}
+        loading={vehDrawerLoading}
+        vehicle={vehDetails}
+        error={vehDrawerError}
+        onClose={() => { setVehDrawerOpen(false); setVehDetails(null); setVehDrawerError(null) }}
+      />
       {/* FAB mobile */}
       {fabOpen && <div className={styles.fabBackdrop} onClick={() => setFabOpen(false)} />}
       <div className={styles.fabWrap}>

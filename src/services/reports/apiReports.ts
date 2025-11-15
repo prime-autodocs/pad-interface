@@ -90,4 +90,37 @@ export async function fetchCustomerDetails(customerId: string | number): Promise
   return (await res.json()) as CustomerDetails
 }
 
+export type VehicleDetails = {
+  id: string | number
+  customer_id?: string | number
+  brand?: string
+  model?: string
+  number_plate?: string
+  chassis?: string
+  national_registry?: string
+  year_fabric?: string
+  year_model?: string
+  fuel?: string
+  color?: string
+  category?: string
+  certification_number?: string
+  crlv_image?: string
+  last_legalization_year?: number
+}
+
+export async function fetchVehicleDetails(vehicleId: string | number): Promise<VehicleDetails> {
+  const baseUrl = getBaseUrl()
+  const url = `${baseUrl}/reports/vehicle-details/${encodeURIComponent(String(vehicleId))}`
+  const res = await fetch(url, { credentials: getCredentialsMode() })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const j = await res.json()
+      detail = j?.detail ?? j?.message
+    } catch {}
+    throw new Error(detail ?? `Erro ao carregar detalhes do veículo (${res.status})`)
+  }
+  return (await res.json()) as VehicleDetails
+}
+
 

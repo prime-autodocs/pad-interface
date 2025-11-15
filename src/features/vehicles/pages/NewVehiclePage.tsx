@@ -1,9 +1,10 @@
 import React from 'react'
-import { clientsMock, Client } from '../../clients/data/mock'
 import styles from '../../clients/pages/register/ClientRegisterPage.module.css'
 import { VehicleRegisterProvider, useVehicleRegister } from '../context/VehicleRegisterContext'
 import successImage from '@assets/icons/success-icon.png'
 import { useNavigate } from 'react-router-dom'
+import { fetchAvailableCustomers } from '@services/customers/apiCustomers'
+import { createVehicle } from '@services/vehicles/apiVehicles'
 
 function normalize(str: string) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -25,26 +26,36 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
   const [mode, setMode] = React.useState<Mode>('nome')
   const [q, setQ] = React.useState('')
   const [open, setOpen] = React.useState(false)
-  const [results, setResults] = React.useState<Client[]>([])
-  const [selected, setSelected] = React.useState<Client | null>(null)
+  const [results, setResults] = React.useState<Array<{ id?: string | number; name: string; tax_id: string }>>([])
+  const [loading, setLoading] = React.useState(false)
+  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null)
+  const [selected, setSelected] = React.useState<{
+    id: string
+    nome: string
+    documentType: 'CPF' | 'CNPJ'
+    document: string
+    phone?: string
+  } | null>(null)
   const { setClient } = useVehicleRegister()
 
-  function doSearch(value: string, currentMode: Mode) {
-    const term = value.trim()
+  // debounced remote search
+  React.useEffect(() => {
+    const term = q.trim()
     if (!term) { setResults([]); return }
-    const norm = normalize(term)
-    const digits = term.replace(/\D/g, '')
-    const filtered = clientsMock.filter((c) => {
-      if (currentMode === 'nome') {
-        return normalize(c.nome).includes(norm)
+    const handler = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const field_selected = mode === 'nome' ? 'name' : mode
+        const list = await fetchAvailableCustomers({ search: term, field_selected })
+        setResults(list)
+      } catch {
+        setResults([])
+      } finally {
+        setLoading(false)
       }
-      if (currentMode === 'cpf') {
-        return c.documentType === 'CPF' && c.document.includes(digits)
-      }
-      return c.documentType === 'CNPJ' && c.document.includes(digits)
-    })
-    setResults(filtered)
-  }
+    }, 350)
+    return () => clearTimeout(handler)
+  }, [q, mode])
 
   function onChangeMode(m: Mode) {
     setMode(m)
@@ -53,9 +64,18 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
     setSelected(null)
   }
 
-  function onSelect(c: Client) {
-    setSelected(c)
-    setQ(c.nome)
+  function onSelect(item: { id?: string | number; name: string; tax_id: string }) {
+    const digits = item.tax_id.replace(/\D/g, '')
+    const documentType: 'CPF' | 'CNPJ' = digits.length === 14 ? 'CNPJ' : 'CPF'
+    const mapped = {
+      id: String(item.id ?? (digits || item.name)),
+      nome: item.name,
+      documentType,
+      document: digits || item.tax_id,
+      phone: undefined
+    }
+    setSelected(mapped)
+    setQ(item.name)
     setOpen(false)
   }
 
@@ -78,7 +98,7 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
           <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
             <input
               value={q}
-              onChange={(e) => { setQ(e.target.value); doSearch(e.target.value, mode); setOpen(true) }}
+              onChange={(e) => { setQ(e.target.value); setOpen(true) }}
               onFocus={() => setOpen(true)}
               onBlur={() => setTimeout(() => setOpen(false), 120)}
               placeholder={mode === 'nome' ? 'Digite o nome' : mode === 'cpf' ? 'Digite o CPF' : 'Digite o CNPJ'}
@@ -86,16 +106,35 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
                 width: '100%', height: 40, border: '1px solid #d7e2e6', borderRadius: 8, padding: '0 10px'
               }}
             />
-            {open && results.length > 0 && (
+            {open && (loading || results.length > 0) && (
               <div style={{
                 position: 'absolute', top: 44, left: 0, right: 0, background: '#fff',
                 border: '1px solid #e7eef0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.08)', zIndex: 10, maxHeight: 240, overflowY: 'auto'
               }}>
-                {results.map((c) => (
-                  <div key={c.id} onMouseDown={() => onSelect(c)} style={{ padding: '10px 12px', cursor: 'pointer' }}>
-                    {c.nome}
-                  </div>
-                ))}
+                {loading && <div style={{ padding: '10px 12px', color: '#7b848a' }}>Buscando...</div>}
+                {!loading && results.map((c, idx) => {
+                  const digits = c.tax_id.replace(/\D/g, '')
+                  const labelDoc = digits.length === 14 ? formatCnpj(digits) : formatCpf(digits)
+                  const isHovered = hoveredIndex === idx
+                  return (
+                    <div
+                      key={String(c.id ?? `${c.name}-${c.tax_id}`)}
+                      onMouseDown={() => onSelect(c)}
+                      onMouseEnter={() => setHoveredIndex(idx)}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                      style={{
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        background: isHovered ? 'var(--color-accent)' : '#ffffff',
+                        color: isHovered ? '#ffffff' : 'inherit',
+                        transition: 'background 120ms ease, color 120ms ease'
+                      }}
+                    >
+                      <div>{c.name}</div>
+                      <div style={{ fontSize: 12, color: isHovered ? '#ffffff' : '#7b848a' }}>{labelDoc}</div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -153,12 +192,20 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
     return input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 7)
   }
   function isValidPlate(plate: string) {
-    const p = normalizePlate(plate)
-    return /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(p)
+    const value = (plate || '').toUpperCase()
+    return /^[A-Z]{3}-?\d[A-Z0-9]\d{2}$/.test(value)
   }
   function isValidRenavam(value: string) {
     const d = value.replace(/\D/g, '')
     return d.length === 11
+  }
+  function isValidChassis(chassis: string) {
+    const v = (chassis || '').toUpperCase()
+    if (!v) return false
+    if (v.startsWith('0')) return false
+    if (/[0-9]{6}/.test(v)) return false
+    if (/[QOI]/.test(v)) return false
+    return true
   }
   function isNumeric(str?: string) {
     if (!str) return false
@@ -170,6 +217,7 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
     if (!data.vehicle.model || !data.vehicle.model.trim()) e.model = 'Modelo é obrigatório.'
     if (!data.vehicle.plate || !isValidPlate(data.vehicle.plate)) e.plate = 'Placa inválida. Use ABC1D23.'
     if (!data.vehicle.chassis || !data.vehicle.chassis.trim()) e.chassis = 'Chassi é obrigatório.'
+    else if (!isValidChassis(data.vehicle.chassis)) e.chassis = 'Chassi inválido: não iniciar com 0, sem Q/O/I e sem 6 dígitos consecutivos.'
     if (data.vehicle.renavam && !isValidRenavam(data.vehicle.renavam)) e.renavam = 'Renavam deve ter 11 dígitos.'
     if (!data.vehicle.year || !isNumeric(data.vehicle.year)) e.year = 'Ano é obrigatório.'
     if (!data.vehicle.modelYear || !isNumeric(data.vehicle.modelYear)) e.modelYear = 'Modelo é obrigatório.'
@@ -278,7 +326,17 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
   )
 }
 
-function SummaryModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) {
+function SummaryModal({
+  onClose,
+  onConfirm,
+  loading,
+  errorMessage
+}: {
+  onClose: () => void
+  onConfirm: () => void
+  loading: boolean
+  errorMessage?: string | null
+}) {
   const { data } = useVehicleRegister()
   const items: Array<[string, string | undefined]> = [
     ['Cliente', data.client?.nome],
@@ -306,9 +364,16 @@ function SummaryModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
               <li key={k}><strong>{k}:</strong> {v}</li>
             ))}
           </ul>
+          {errorMessage && (
+            <div className={styles.error} role="alert" style={{ gridColumn: '1 / -1', margin: '0 0 6px 0' }}>
+              {errorMessage}
+            </div>
+          )}
           <div className={styles.summaryFooter}>
-            <button className={`${styles.btn} ${styles.muted}`} onClick={onClose}>Voltar</button>
-            <button className={`${styles.btn} ${styles.primary}`} onClick={onConfirm}>Cadastrar</button>
+            <button className={`${styles.btn} ${styles.muted}`} onClick={onClose} disabled={loading}>Voltar</button>
+            <button className={`${styles.btn} ${styles.primary}`} onClick={onConfirm} disabled={loading}>
+              {loading ? <span className={styles.spinner} /> : 'Cadastrar'}
+            </button>
           </div>
         </div>
       </div>
@@ -338,24 +403,38 @@ function Success({ onNew }: { onNew: () => void }) {
 function Content() {
   const [step, setStep] = React.useState<'select' | 'docs' | 'success'>('select')
   const [showSummary, setShowSummary] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
   const { data, setVehicle } = useVehicleRegister()
 
   async function confirm() {
-    setShowSummary(false)
+    if (submitting) return
+    setSubmitError(null)
+    setSubmitting(true)
     const payload = {
-      client: data.client,
-      vehicle: data.vehicle
+      customer_id: data.client?.id || '',
+      brand: data.vehicle.brand || '',
+      model: data.vehicle.model || '',
+      number_plate: data.vehicle.plate?.toUpperCase() || '',
+      chassis: data.vehicle.chassis?.toUpperCase() || '',
+      national_registry: data.vehicle.renavam || undefined,
+      year_fabric: data.vehicle.year || undefined,
+      year_model: data.vehicle.modelYear || undefined,
+      fuel: data.vehicle.fuel || undefined,
+      color: data.vehicle.color || undefined,
+      category: data.vehicle.category || undefined,
+      certification_number: data.vehicle.crv || undefined,
+      crlv_image: data.vehicle.docPhotoUrl || undefined
     }
     try {
-      await fetch('https://jsonplaceholder.typicode.com/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-    } catch (e) {
-      // ignore
-    } finally {
+      await createVehicle(payload)
+      setShowSummary(false)
       setStep('success')
+    } catch (e) {
+      const msg = (e as Error).message
+      setSubmitError(msg)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -371,7 +450,14 @@ function Content() {
         })
         setStep('docs')
       }} />}
-      {showSummary && <SummaryModal onClose={() => setShowSummary(false)} onConfirm={confirm} />}
+      {showSummary && (
+        <SummaryModal
+          onClose={() => { if (!submitting) setShowSummary(false) }}
+          onConfirm={confirm}
+          loading={submitting}
+          errorMessage={submitError}
+        />
+      )}
     </>
   )
 }

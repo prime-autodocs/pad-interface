@@ -1,101 +1,105 @@
 import React from 'react'
 import styles from './ClientDetailsDrawer.module.css'
-import { Client, Vehicle } from '../data/mock'
 import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
+import type { VehicleDetails } from '@services/reports/apiReports'
 
-type Props = {
+export default function VehicleDetailsDrawer({
+  open,
+  loading,
+  vehicle,
+  error,
+  onClose
+}: {
   open: boolean
-  client: Client
-  vehicle: Vehicle
+  loading: boolean
+  vehicle?: VehicleDetails | null
+  error?: string | null
   onClose: () => void
-}
-
-export default function VehicleDetailsDrawer({ open, client, vehicle, onClose }: Props) {
-  const [visible, setVisible] = React.useState(false)
+}) {
   React.useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true))
-    return () => cancelAnimationFrame(id)
-  }, [])
-  React.useEffect(() => {
-    lockScroll('vehicle-details-drawer')
-    return () => unlockScroll('vehicle-details-drawer')
-  }, [])
-  function handleClose() {
-    setVisible(false)
-  }
-  function handleTransitionEnd() {
-    if (!visible) onClose()
-  }
+    if (open) {
+      lockScroll('veh-details')
+      return () => unlockScroll('veh-details')
+    }
+  }, [open])
 
-  const notProvided = 'Não preenchido'
-
+  if (!open) return null
   return (
     <>
-      <div className={[styles.backdrop, visible ? styles.backdropOpen : ''].join(' ')} onClick={handleClose} />
-      <aside
-        className={[styles.drawer, visible ? styles.open : ''].join(' ')}
-        onTransitionEnd={handleTransitionEnd}
-      >
+      <div className={[styles.backdrop, open ? styles.backdropOpen : ''].join(' ').trim()} onClick={onClose} />
+      <aside className={[styles.drawer, open ? styles.open : ''].join(' ').trim()}>
         <header className={styles.header}>
-          <h3 className={styles.title}>Detalhe do Veículo</h3>
-          <button className={styles.close} onClick={handleClose}>×</button>
+          <h3 className={styles.title}>Detalhes do Veículo</h3>
+          <button className={styles.close} onClick={onClose}>✕</button>
         </header>
         <div className={styles.content}>
+          {error && (
+            <div className={[styles.full, styles.danger].join(' ')} role="alert" style={{ marginBottom: 4 }}>
+              {error}
+            </div>
+          )}
+          {/* Coluna 1 */}
           <div className={styles.field}>
-            <div className={styles.label}>Cliente</div>
-            <div className={styles.value}>{client.nome}</div>
+            <div className={styles.label}>Marca</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonLine}`} /> : (vehicle?.brand || '-')}</div>
           </div>
-          <div className={[styles.field, styles.full].join(' ')}>
-            <div className={styles.label}>Documento</div>
-            <div className={styles.docBox}>Documento</div>
-          </div>
-
           <div className={styles.field}>
-            <div className={styles.label}>Veículo</div>
-            <div className={styles.value}>{vehicle.model}</div>
+            <div className={styles.label}>Modelo</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonLine}`} /> : (vehicle?.model || '-')}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Placa</div>
-            <div className={styles.value}>{vehicle.plate}</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.number_plate || '-')}</div>
           </div>
-
           <div className={styles.field}>
             <div className={styles.label}>Chassi</div>
-            <div className={styles.value}>{vehicle.chassis || notProvided}</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonBlock}`} /> : (vehicle?.chassis || '-')}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Renavam</div>
-            <div className={styles.value}>{vehicle.renavam || notProvided}</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.national_registry || '-')}</div>
           </div>
-
           <div className={styles.field}>
-            <div className={styles.label}>Ano/Modelo</div>
-            <div className={styles.value}>
-              {vehicle.year || notProvided}/{vehicle.modelYear || notProvided}
-            </div>
+            <div className={styles.label}>Ano Fabricação</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.year_fabric || '-')}</div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Ano Modelo</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.year_model || '-')}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Combustível</div>
-            <div className={styles.value}>{vehicle.fuel || notProvided}</div>
-          </div>
-
-          <div className={styles.field}>
-            <div className={styles.label}>Categoria</div>
-            <div className={styles.value}>{vehicle.category || notProvided}</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.fuel || '-')}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Cor</div>
-            <div className={styles.value}>{vehicle.color || notProvided}</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.color || '-')}</div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Categoria</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.category || '-')}</div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Certificação</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.certification_number || '-')}</div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Último Licenciamento</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.last_legalization_year ?? '-')}</div>
           </div>
 
-          <div className={styles.field}>
-            <div className={styles.label}>CRV</div>
-            <div className={styles.value}>{vehicle.crv ?? notProvided}</div>
+          <div className={[styles.section, styles.full].join(' ')}>
+            <div className={styles.label}>CRLV</div>
+          </div>
+          <div className={[styles.full].join(' ')}>
+            {loading
+              ? <div className={styles.docBox}><span className={`${styles.skeleton} ${styles.skeletonBlock}`} /></div>
+              : (vehicle?.crlv_image
+                ? <img src={vehicle.crlv_image} alt="CRLV" style={{ maxWidth: '100%', borderRadius: 8 }} />
+                : <div className={styles.docBox}>Sem CRLV</div>)}
           </div>
         </div>
       </aside>
     </>
   )
 }
-
-

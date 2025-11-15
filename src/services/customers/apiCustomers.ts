@@ -68,4 +68,33 @@ export async function createCustomer(payload: CreateCustomerRequest): Promise<vo
 
 export type { CreateCustomerAddress, CreateCustomerDocuments }
 
+export type AvailableCustomer = {
+  id?: string | number
+  name: string
+  tax_id: string
+}
+
+export async function fetchAvailableCustomers(params: { search?: string; field_selected?: 'name' | 'cpf' | 'cnpj' } = {}): Promise<AvailableCustomer[]> {
+  const baseUrl = getBaseUrl()
+  const qs = new URLSearchParams()
+  if (params.search && params.search.trim()) qs.set('search', params.search.trim())
+  if (params.field_selected) qs.set('field_selected', params.field_selected)
+  const url = `${baseUrl}/customers/available-customers/${qs.toString() ? `?${qs.toString()}` : ''}`
+  const res = await fetch(url, { credentials: getCredentialsMode(), headers: { Accept: 'application/json' } })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const j = await res.json()
+      detail = j?.detail ?? j?.message
+    } catch {}
+    throw new Error(detail ?? `Erro ao carregar clientes disponíveis (${res.status})`)
+  }
+  const json = await res.json().catch(() => [])
+  // API expected to return an array of { id?, name, tax_id }
+  if (Array.isArray(json)) return json as AvailableCustomer[]
+  // Some backends may wrap in { items: [...] }
+  if (Array.isArray(json?.items)) return json.items as AvailableCustomer[]
+  return []
+}
+
 
