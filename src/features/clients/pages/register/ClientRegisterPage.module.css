@@ -156,6 +156,22 @@
   margin-top: 12px;
 }
 
+/* Loading spinner for submit button */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-top-color: #ffffff;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Responsividade */
 @media (max-width: 1200px) {
   .twoCol {

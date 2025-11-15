@@ -1,59 +1,49 @@
 import React from 'react'
 import styles from './ClientsReportPage.module.css'
-import { Client, clientsMock, clientTypes, ClientType } from '../data/mock'
-import ClientDetailsDrawer from '../components/ClientDetailsDrawer'
-import VehiclesModal from '../components/VehiclesModal'
+import { clientTypes, ClientType, type Client } from '../data/mock'
 import { useNavigate } from 'react-router-dom'
 import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
+import { fetchReportsList, type ReportItem, fetchCustomerDetails, type CustomerDetails } from '@services/reports/apiReports'
+import ClientDetailsDrawer from '../components/ClientDetailsDrawer'
 
 function normalize(str: string) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
-function maskCpf(cpf: string): string {
-  const d = cpf.replace(/\D/g, '')
-  if (d.length !== 11) return cpf
-  return `${d.slice(0, 3)}.***.***-${d.slice(-2)}`
-}
-function maskCnpj(cnpj: string): string {
-  const d = cnpj.replace(/\D/g, '')
-  if (d.length !== 14) return cnpj
-  return `${d.slice(0, 2)}.***.***/****-${d.slice(-2)}`
-}
-function getMaskedDocument(c: Client): string {
-  return c.documentType === 'CPF' ? maskCpf(c.document) : maskCnpj(c.document)
-}
-
-// Full formatted versions (no obfuscation), for the drawer
-function formatCpf(cpf: string): string {
-  const d = cpf.replace(/\D/g, '')
-  if (d.length !== 11) return cpf
-  return d
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-}
-function formatCnpj(cnpj: string): string {
-  const d = cnpj.replace(/\D/g, '')
-  if (d.length !== 14) return cnpj
-  return d
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2}\.\d{3})(\d)/, '$1.$2')
-    .replace(/^(\d{2}\.\d{3}\.\d{3})(\d)/, '$1/$2')
-    .replace(/(\d{4})(\d)/, '$1-$2')
-}
-function getFormattedDocument(c: Client): string {
-  return c.documentType === 'CPF' ? formatCpf(c.document) : formatCnpj(c.document)
+function maskTaxId(doc: string): string {
+  const d = doc.replace(/\D/g, '')
+  if (d.length === 11) return `${d.slice(0, 3)}.***.***-${d.slice(-2)}`
+  if (d.length === 14) return `${d.slice(0, 2)}.***.***/****-${d.slice(-2)}`
+  return doc
 }
 
 export default function ClientsReportPage() {
   const [query, setQuery] = React.useState('')
+  const [debouncedQuery, setDebouncedQuery] = React.useState('')
   const [typeFilter, setTypeFilter] = React.useState<ClientType | 'Todos'>('Todos')
   const [perPage, setPerPage] = React.useState(10)
   const [page, setPage] = React.useState(1)
-  const [selected, setSelected] = React.useState<Client | null>(null)
-  const [vehiclesFor, setVehiclesFor] = React.useState<Client | null>(null)
+  const [items, setItems] = React.useState<ReportItem[]>([])
+  const [totalClients, setTotalClients] = React.useState<number>(0)
+  const [loading, setLoading] = React.useState<boolean>(false)
+  const [error, setError] = React.useState<string | null>(null)
   const [fabOpen, setFabOpen] = React.useState(false)
+  const [detailsOpen, setDetailsOpen] = React.useState(false)
+  const [selected, setSelected] = React.useState<Client | null>(null)
+  const [detailsLoading, setDetailsLoading] = React.useState(false)
+  const [drawerDocs, setDrawerDocs] = React.useState<{
+    identityNumber?: string
+    identityOrg?: string
+    identityIssuedAt?: string
+    identityLocal?: string
+    driverLicenseNumber?: string
+    driverLicenseExpiration?: string
+    smtrPermissionNumber?: string
+    smtrRatrNumber?: string
+    photoImage?: string
+    driverLicenseImage?: string
+    smtrPermissionImage?: string
+  } | undefined>(undefined)
   const navigate = useNavigate()
   React.useEffect(() => {
     if (fabOpen) {
@@ -62,31 +52,109 @@ export default function ClientsReportPage() {
     }
   }, [fabOpen])
 
-  const filtered = React.useMemo(() => {
-    const q = normalize(query.trim())
-    const qDigits = query.replace(/\D/g, '')
-    const thresholdMet = q.length >= 3 || qDigits.length >= 3
-    const tokens = q.split(/\s+/).filter(Boolean)
-    return clientsMock.filter((c) => {
-      if (!thresholdMet) return typeFilter === 'Todos' || c.tipo === typeFilter
-      const nameNorm = normalize(c.nome)
-      const plateNorm = normalize(c.placa)
-      const nameMatch = tokens.length > 0 ? tokens.every((t) => nameNorm.includes(t)) : false
-      const plateMatch = plateNorm.includes(q)
-      const docMatch = qDigits.length >= 3 && c.document.includes(qDigits)
-      const matchesQ = nameMatch || plateMatch || docMatch
-      const matchesType = typeFilter === 'Todos' || c.tipo === typeFilter
-      return matchesQ && matchesType
-    })
-  }, [query, typeFilter])
+  // Debounce search: 3s sem digitar
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 3000)
+    return () => clearTimeout(t)
+  }, [query])
+
+  // Fetch from API when debounced search or filter changes
+  React.useEffect(() => {
+    let active = true
+    ;(async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const filter_by =
+          typeFilter === 'Todos' ? undefined :
+          typeFilter === 'Ambos' ? 'both' :
+          (typeFilter.toUpperCase() as 'DETRAN' | 'SMTR')
+        const resp = await fetchReportsList({ search: debouncedQuery, filter_by })
+        if (!active) return
+        setItems(resp.items ?? [])
+        setTotalClients(Number(resp.total_clients ?? 0))
+        setPage(1)
+      } catch (e) {
+        if (!active) return
+        setError(e instanceof Error ? e.message : 'Erro ao carregar relatório')
+        setItems([])
+        setTotalClients(0)
+      } finally {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [debouncedQuery, typeFilter])
 
   React.useEffect(() => {
     setPage(1)
-  }, [query, typeFilter, perPage])
+  }, [perPage])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const totalPages = Math.max(1, Math.ceil(items.length / perPage))
   const start = (page - 1) * perPage
-  const pageItems = filtered.slice(start, start + perPage)
+  const pageItems = items.slice(start, start + perPage)
+
+  async function openDetails(c: ReportItem) {
+    setDetailsOpen(true)
+    setDetailsLoading(true)
+    setSelected({
+      id: String(c.id),
+      nome: c.name,
+      documentType: c.tax_id.replace(/\D/g, '').length === 14 ? 'CNPJ' : 'CPF',
+      document: c.tax_id,
+      placa: '',
+      tipo: c.customer_type as any,
+      veiculos: c.total_veihicles ?? 0,
+      phone: '',
+    })
+    try {
+      const det = await fetchCustomerDetails(c.id)
+      const mapped: Client = {
+        id: String(c.id),
+        nome: det.full_name,
+        documentType: det.tax_type,
+        document: det.tax_id,
+        placa: '',
+        tipo: (det.customer_type === 'DETRAN' ? 'Detran' : det.customer_type === 'SMTR' ? 'SMTR' : 'Ambos'),
+        veiculos: c.total_veihicles ?? 0,
+        phone: det.tel_number,
+        birthDate: det.birth_date,
+        sex: det.gender === 'male' ? 'Masculino' : det.gender === 'female' ? 'Feminino' : null,
+        permissionNumber: det.documents.smtr_permission_number ?? null,
+        address: det.address.address ? {
+          street: det.address.address,
+          city: det.address.city || '',
+          state: det.address.state || '',
+          zip: det.address.zip_code || ''
+        } : undefined,
+        cnh: (det.documents.driver_license_number || det.documents.identity_issued_at || det.documents.driver_license_expiration || det.documents.identity_local) ? {
+          registro: det.documents.driver_license_number || '',
+          expedicao: det.documents.identity_issued_at || '',
+          validade: det.documents.driver_license_expiration || '',
+          uf: det.documents.identity_local || ''
+        } : undefined
+      }
+      setSelected(mapped)
+      setDrawerDocs({
+        identityNumber: det.documents.identity_number,
+        identityOrg: det.documents.identity_org,
+        identityIssuedAt: det.documents.identity_issued_at,
+        identityLocal: det.documents.identity_local,
+        driverLicenseNumber: det.documents.driver_license_number,
+        driverLicenseExpiration: det.documents.driver_license_expiration,
+        smtrPermissionNumber: det.documents.smtr_permission_number,
+        smtrRatrNumber: det.documents.smtr_ratr_number,
+        // imagens (se vierem)
+        photoImage: undefined,
+        driverLicenseImage: det.documents.driver_license_image,
+        smtrPermissionImage: det.documents.smtr_permission_image
+      })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao abrir detalhes')
+    } finally {
+      setDetailsLoading(false)
+    }
+  }
 
   return (
     <div className={styles.container}>
@@ -97,7 +165,7 @@ export default function ClientsReportPage() {
             <input
               id="searchClients"
               className={styles.search}
-              placeholder="Buscar por Nome, Placa ou CPF/CNPJ (min. 3 caracteres)"
+              placeholder="Buscar por Nome, Placa ou CPF/CNPJ"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -129,53 +197,77 @@ export default function ClientsReportPage() {
             </tr>
           </thead>
           <tbody>
-            {pageItems.map((c) => (
-              <tr key={c.id} className={styles.row} onClick={() => setSelected(c)} style={{ cursor: 'pointer' }}>
-                <td className={styles.cell}>{c.nome}</td>
-                <td className={styles.cell}>{getMaskedDocument(c)}</td>
-                <td className={styles.cell}>{c.tipo}</td>
+            {pageItems.map((c, idx) => (
+              <tr
+                key={String(c.id ?? idx)}
+                className={styles.row}
+                onClick={() => openDetails(c)}
+                style={{ cursor: 'pointer' }}
+              >
+                <td className={styles.cell}>{c.name}</td>
+                <td className={styles.cell}>{maskTaxId(c.tax_id)}</td>
+                <td className={styles.cell}>{c.customer_type}</td>
                 <td className={styles.cell}>
-                  <span
-                    className={[styles.badge, c.veiculos === 0 ? styles.badgeMuted : ''].join(' ').trim()}
-                    onClick={(e) => { e.stopPropagation(); setVehiclesFor(c) }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {c.veiculos}
+                  <span className={styles.badge}>
+                    {c.total_veihicles ?? 0}
                   </span>
                 </td>
               </tr>
             ))}
+            {(!loading && pageItems.length === 0) && (
+              <tr>
+                <td className={styles.cell} colSpan={4}>Nenhum resultado</td>
+              </tr>
+            )}
+            {loading && Array.from({ length: 10 }).map((_, i) => (
+              <tr key={`skeleton-${i}`} className={styles.row}>
+                <td className={styles.cell}><span className={styles.skeleton} style={{ width: `${60 + (i % 3) * 10}%` }} /></td>
+                <td className={styles.cell}><span className={styles.skeleton} style={{ width: '40%' }} /></td>
+                <td className={styles.cell}><span className={styles.skeleton} style={{ width: '30%' }} /></td>
+                <td className={styles.cell}><span className={[styles.skeleton, styles.skeletonBadge].join(' ')} /></td>
+              </tr>
+            ))}
+            {error && !loading && (
+              <tr>
+                <td className={styles.cell} colSpan={4} style={{ color: '#d93025' }}>{error}</td>
+              </tr>
+            )}
           </tbody>
         </table>
         </div>
 
         {/* Cards para mobile */}
         <div className={styles.cards}>
-          {pageItems.map((c) => (
-            <div key={c.id} className={styles.cardItem} onClick={() => setSelected(c)}>
-              <div className={styles.cardLine}><span className={styles.k}>Nome:</span> <span className={styles.v}>{c.nome}</span></div>
-              <div className={styles.cardLine}><span className={styles.k}>Documento:</span> <span className={styles.v}>{getMaskedDocument(c)}</span></div>
-              <div className={styles.cardRow}>
-                <div><span className={styles.k}>Tipo:</span> <span className={styles.v}>{c.tipo}</span></div>
-                <button
-                  type="button"
-                  className={styles.vehiclesBtn}
-                  onClick={(e) => { e.stopPropagation(); setVehiclesFor(c) }}
-                  disabled={c.veiculos === 0}
-                  title={c.veiculos === 0 ? 'Sem veículos' : 'Ver veículos'}
-                >
-                  <span className={styles.k}>Veículos:</span>
-                  <span className={[styles.badge, c.veiculos === 0 ? styles.badgeMuted : ''].join(' ').trim()}>
-                    {c.veiculos}
-                  </span>
-                </button>
-              </div>
-            </div>
-          ))}
+          {loading
+            ? Array.from({ length: 10 }).map((_, i) => (
+                <div key={`card-skeleton-${i}`} className={styles.cardSkeleton}>
+                  <span className={styles.skeleton} style={{ width: `${65 + (i % 3) * 10}%` }} />
+                  <span className={styles.skeleton} style={{ width: '55%' }} />
+                  <div className={styles.cardRow}>
+                    <span className={styles.skeleton} style={{ width: '40%' }} />
+                    <span className={[styles.skeleton, styles.skeletonBadge].join(' ')} />
+                  </div>
+                </div>
+              ))
+            : pageItems.map((c, idx) => (
+                <div key={String(c.id ?? idx)} className={styles.cardItem} onClick={() => openDetails(c)} style={{ cursor: 'pointer' }}>
+                  <div className={styles.cardLine}><span className={styles.k}>Nome:</span> <span className={styles.v}>{c.name}</span></div>
+                  <div className={styles.cardLine}><span className={styles.k}>Documento:</span> <span className={styles.v}>{maskTaxId(c.tax_id)}</span></div>
+                  <div className={styles.cardRow}>
+                    <div><span className={styles.k}>Tipo:</span> <span className={styles.v}>{c.customer_type}</span></div>
+                    <div className={styles.vehiclesBtn} title="Veículos">
+                      <span className={styles.k}>Veículos:</span>
+                      <span className={styles.badge}>
+                        {c.total_veihicles ?? 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
         </div>
 
         <div className={styles.footer}>
-          <div className={styles.total}>Total: {filtered.length} Clientes</div>
+          <div className={styles.total}>Total: {totalClients} Clientes</div>
           <div className={styles.pager}>
             <div className={styles.perPage}>
               <span>Itens por página:</span>
@@ -203,10 +295,7 @@ export default function ClientsReportPage() {
           </div>
         </div>
       </div>
-      <>
-        {selected && <ClientDetailsDrawer open={!!selected} client={selected} onClose={() => setSelected(null)} />}
-        {vehiclesFor && <VehiclesModal open={!!vehiclesFor} client={vehiclesFor} onClose={() => setVehiclesFor(null)} />}
-      </>
+      <ClientDetailsDrawer open={detailsOpen} client={selected} loading={detailsLoading} documents={drawerDocs} onClose={() => { setSelected(null); setDetailsOpen(false) }} />
       {/* FAB mobile */}
       {fabOpen && <div className={styles.fabBackdrop} onClick={() => setFabOpen(false)} />}
       <div className={styles.fabWrap}>

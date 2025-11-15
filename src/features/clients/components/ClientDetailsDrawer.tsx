@@ -4,10 +4,26 @@ import { Client } from '../data/mock'
 import { lockScroll, unlockScroll } from '../../../lib/scrollLock'
 import ClientMapModal from './ClientMapModal'
 
+type DrawerDocuments = {
+  identityNumber?: string
+  identityOrg?: string
+  identityIssuedAt?: string
+  identityLocal?: string
+  driverLicenseNumber?: string
+  driverLicenseExpiration?: string
+  smtrPermissionNumber?: string
+  smtrRatrNumber?: string
+  photoImage?: string
+  driverLicenseImage?: string
+  smtrPermissionImage?: string
+}
+
 type Props = {
   open: boolean
   client: Client | null
   onClose: () => void
+  loading?: boolean
+  documents?: DrawerDocuments
 }
 
 function formatDate(iso?: string) {
@@ -17,7 +33,21 @@ function formatDate(iso?: string) {
   return d.toLocaleDateString('pt-BR')
 }
 
-export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
+function formatPhone(phone?: string) {
+  if (!phone) return ''
+  const d = phone.replace(/\D/g, '')
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 3)}${d.slice(3, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return phone
+}
+
+function formatCEP(zip?: string) {
+  if (!zip) return ''
+  const d = zip.replace(/\D/g, '')
+  if (d.length === 8) return `${d.slice(0, 5)}-${d.slice(5)}`
+  return zip
+}
+export default function ClientDetailsDrawer({ open, client, onClose, loading, documents }: Props) {
   if (!client) return null
   const [visible, setVisible] = React.useState(false)
   const [showMap, setShowMap] = React.useState(false)
@@ -38,7 +68,7 @@ export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
   }
   const addr = client.address
   const addressStr = addr
-    ? `${addr.street}\n${addr.city} - ${addr.state}\n${addr.zip}`
+    ? `${addr.street}\n${addr.city} - ${addr.state}\n${formatCEP(addr.zip)}`
     : ''
   const mapsUrl = addr
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -57,6 +87,8 @@ export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
     function getFormattedDocument(client: Client): React.ReactNode {
         return client.documentType === 'CPF' ? formatCpf(client.document) : formatCnpj(client.document)
     }
+  const Skel = ({ w = '60%', small = false }: { w?: string; small?: boolean }) =>
+    <span className={[styles.skeleton, small ? styles.skeletonSmall : styles.skeletonLine].join(' ')} style={{ width: w }} />
 
   return (
     <>
@@ -72,46 +104,82 @@ export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
         <div className={styles.content}>
           <div className={styles.field}>
             <div className={styles.label}>Nome</div>
-            <div className={styles.value}>{client.nome}</div>
+            <div className={styles.value}>{loading ? <Skel w="70%" /> : client.nome}</div>
           </div>
           <div className={[styles.field, styles.full].join(' ')}>
             <div className={styles.label}>Documentos</div>
             <div className={styles.docs}>
-              <div className={styles.docBox}>Documento 1</div>
-              <div className={styles.docBox}>Documento 2</div>
-              <div className={styles.docBox}>Não possui permissão</div>
+              <div className={styles.docBox}>
+                {loading ? (
+                  <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} />
+                ) : documents?.photoImage ? (
+                  <img src={documents.photoImage} alt="Foto do cliente" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                ) : (
+                  'Sem foto cadastrada'
+                )}
+              </div>
+              <div className={styles.docBox}>
+                {loading ? (
+                  <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} />
+                ) : documents?.driverLicenseImage ? (
+                  <img src={documents.driverLicenseImage} alt="Documento do cliente" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                ) : (
+                  'Sem documento cadastrado'
+                )}
+              </div>
+              {(client.tipo !== 'Detran') && (
+                <div className={styles.docBox}>
+                  {loading ? (
+                    <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} />
+                  ) : documents?.smtrPermissionImage ? (
+                    <img src={documents.smtrPermissionImage} alt="Permissão SMTR" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                  ) : (
+                    'Sem permissão registrada'
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           <div className={styles.field}>
             <div className={styles.label}>CPF/CNPJ</div>
-            <div className={styles.value}>{getFormattedDocument(client)}</div>
+            <div className={styles.value}>{loading ? <Skel w="50%" /> : getFormattedDocument(client)}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Tipo do Cliente</div>
-            <div className={styles.value}>{client.tipo}</div>
+            <div className={styles.value}>{loading ? <Skel w="40%" /> : client.tipo}</div>
           </div>
 
           <div className={styles.field}>
             <div className={styles.label}>Data de Nascimento</div>
-            <div className={styles.value}>{formatDate(client.birthDate)}</div>
+            <div className={styles.value}>{loading ? <Skel w="40%" /> : formatDate(client.birthDate)}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Sexo</div>
-            <div className={styles.value}>{client.sex || '-'}</div>
+            <div className={styles.value}>{loading ? <Skel w="30%" /> : (client.sex || '-')}</div>
           </div>
 
           <div className={styles.field}>
             <div className={styles.label}>Telefone</div>
-            <div className={styles.value}>{client.phone}</div>
+            <div className={styles.value}>{loading ? <Skel w="50%" /> : formatPhone(client.phone)}</div>
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.label}>Identidade</div>
           </div>
           <div className={styles.field}>
-            <div className={styles.label}>n° Permissão</div>
+            <div className={styles.label}>RG</div>
+            <div className={styles.value}>{loading ? <Skel w="50%" /> : (documents?.identityNumber || '-')}</div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Orgão emissor + UF</div>
             <div className={styles.value}>
-              {client.permissionNumber ? client.permissionNumber : (
-                <span className={styles.muted}>Cliente não possui permissão</span>
-              )}
+              {loading ? <Skel w="60%" /> : [documents?.identityOrg, documents?.identityLocal].filter(Boolean).join(' / ') || '-'}
             </div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Data de expedição</div>
+            <div className={styles.value}>{loading ? <Skel w="40%" /> : formatDate(documents?.identityIssuedAt)}</div>
           </div>
 
           <div className={styles.section}>
@@ -119,35 +187,50 @@ export default function ClientDetailsDrawer({ open, client, onClose }: Props) {
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Registro</div>
-            <div className={styles.value}>{client.cnh?.registro || '-'}</div>
-          </div>
-          <div className={styles.field}>
-            <div className={styles.label}>Expedição</div>
-            <div className={styles.value}>{formatDate(client.cnh?.expedicao)}</div>
-          </div>
-          <div className={styles.field}>
-            <div className={styles.label}>UF</div>
-            <div className={styles.value}>{client.cnh?.uf || '-'}</div>
+            <div className={styles.value}>{loading ? <Skel w="50%" /> : (client.cnh?.registro)}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Validade</div>
-            <div className={[styles.value, validExpired ? styles.danger : styles.muted].join(' ')}>
-              {formatDate(client.cnh?.validade)}
+            {loading ? <Skel w="40%" /> : (
+              <div className={[styles.value, validExpired ? styles.danger : styles.muted].join(' ')}>
+                {formatDate(client.cnh?.validade)}
+              </div>
+            )}
+          </div>
+          {!loading && !(documents?.driverLicenseNumber || documents?.driverLicenseExpiration || client.cnh?.registro || client.cnh?.validade) && (
+            <div className={[styles.full, styles.value, styles.muted].join(' ')} style={{ marginTop: 4 }}>
+              Sem CNH cadastrada
             </div>
+          )}
+
+          <div className={styles.section}>
+            <div className={styles.label}>SMTR</div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Permissão</div>
+            <div className={styles.value}>
+              {loading ? <Skel w="40%" /> : (documents?.smtrPermissionNumber || <span className={styles.muted}>Cliente não possui informações de SMTR</span>)}
+            </div>
+          </div>
+          <div className={styles.field}>
+            <div className={styles.label}>RATR</div>
+            <div className={styles.value}>{loading ? <Skel w="30%" /> : (documents?.smtrRatrNumber)}</div>
           </div>
 
           <div className={[styles.section, styles.full].join(' ')}>
             <div className={styles.label}>Endereço</div>
-            <div className={[styles.value, styles.address].join(' ')}>{addressStr}</div>
-            {addr && (
-              <button className={styles.mapBtn} onClick={() => setShowMap(true)}>
-                Ver no Mapa
-              </button>
+            <div className={[styles.value, styles.address].join(' ')}>
+              {loading ? <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} /> : (addressStr || <span className={styles.muted}>Sem endereço cadastrado</span>)}
+            </div>
+            {!loading && addr && (
+                <button className={styles.mapBtn} onClick={() => setShowMap(true)}>
+                  Ver no Mapa
+                </button>
             )}
           </div>
         </div>
       </aside>
-      {addr && (
+      {!loading && addr && (
         <ClientMapModal
           open={showMap}
           embedUrl={embedUrl}

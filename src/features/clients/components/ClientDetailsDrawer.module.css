@@ -94,6 +94,12 @@
   border-top: 1px solid #eef3f4;
   margin-top: 4px;
 }
+
+.section .label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .docs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -109,6 +115,22 @@
   font-weight: 600;
   text-align: center;
   padding: 8px;
+}
+.skeleton {
+  display: inline-block;
+  height: 16px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e7eef0 25%, #f3f7f9 37%, #e7eef0 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+.skeletonLine { width: 60%; }
+.skeletonSmall { height: 12px; width: 40%; }
+.skeletonBlock { height: 20px; width: 80%; }
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }
 .address {
   white-space: pre-line;

@@ -3,6 +3,7 @@ import styles from './ClientRegisterPage.module.css'
 import successImage from '@assets/icons/success-icon.png'
 import { ClientRegisterProvider, useClientRegister, DocumentType, ClientKind } from '../../context/ClientRegisterContext'
 import { useNavigate } from 'react-router-dom'
+import { createCustomer, type CreateCustomerRequest } from '@services/customers/apiCustomers'
 
 function isValidCPF(doc: string) {
   const d = doc.replace(/\D/g, '')
@@ -27,7 +28,12 @@ function PersonalStep({ onNext }: { onNext: () => void }) {
 
   function validate(): boolean {
     const e: Record<string, string> = {}
-    if (!data.personal.fullName.trim()) e.fullName = 'Nome completo é obrigatório'
+    if (!data.personal.fullName.trim()) {
+      e.fullName = 'Nome completo é obrigatório'
+    } else {
+      const words = data.personal.fullName.trim().split(/\s+/).filter(Boolean)
+      if (words.length < 2) e.fullName = 'Informe nome e sobrenome'
+    }
     if (!data.personal.document.trim()) e.document = 'Documento é obrigatório'
     if (data.personal.documentType === 'CPF' && !isValidCPF(data.personal.document)) e.document = 'CPF inválido'
     if (data.personal.documentType === 'CNPJ' && !isValidCNPJ(data.personal.document)) e.document = 'CNPJ inválido'
@@ -308,7 +314,17 @@ function AddressStep({ onBack, onConfirm }: { onBack: () => void; onConfirm: () 
   )
 }
 
-function SummaryModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: () => void }) {
+function SummaryModal({
+  onClose,
+  onConfirm,
+  loading,
+  errorMessage
+}: {
+  onClose: () => void
+  onConfirm: () => void
+  loading: boolean
+  errorMessage?: string | null
+}) {
   const { data } = useClientRegister()
   const formatDateBR = (iso?: string) => {
     if (!iso) return undefined
@@ -355,9 +371,16 @@ function SummaryModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
               <li key={label}><strong>{label}:</strong> {value}</li>
             ))}
           </ul>
+          {errorMessage && (
+            <div className={styles.error} role="alert" style={{ gridColumn: '1 / -1', margin: '0 0 6px 0' }}>
+              {errorMessage}
+            </div>
+          )}
           <div className={styles.summaryFooter}>
-            <button className={`${styles.btn} ${styles.muted}`} onClick={onClose}>Voltar</button>
-            <button className={`${styles.btn} ${styles.primary}`} onClick={onConfirm}>Cadastrar</button>
+            <button className={`${styles.btn} ${styles.muted}`} onClick={onClose} disabled={loading}>Voltar</button>
+            <button className={`${styles.btn} ${styles.primary}`} onClick={onConfirm} disabled={loading}>
+              {loading ? <span className={styles.spinner} /> : 'Cadastrar'}
+            </button>
           </div>
         </div>
       </div>
@@ -391,55 +414,80 @@ function SuccessStep() {
   )
 }
 
+function toGender(sex?: 'Masculino' | 'Feminino' | 'Outro'): 'male' | 'female' | 'other' | undefined {
+  if (!sex) return undefined
+  if (sex === 'Masculino') return 'male'
+  if (sex === 'Feminino') return 'female'
+  return 'other'
+}
+
+function toCivilStatus(status?: string): string | undefined {
+  if (!status) return undefined
+  const s = status.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  if (s.includes('solteir')) return 'single'
+  if (s.includes('casad')) return 'married'
+  if (s.includes('divorci')) return 'divorced'
+  if (s.includes('viuv')) return 'widowed'
+  if (s.includes('uniao')) return 'stable_union'
+  return status.toLowerCase()
+}
+
+function onlyDigits(v?: string): string {
+  return (v || '').replace(/\D/g, '')
+}
+
 function Content() {
   const [step, setStep] = React.useState<Step>('personal')
   const [showSummary, setShowSummary] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
   const { data } = useClientRegister()
   async function confirmRegister() {
-    setShowSummary(false)
-    // Monta payload para API fake (substituir no futuro pela API real)
-    const payload = {
-      personal: {
-        fullName: data.personal.fullName,
-        documentType: data.personal.documentType,
-        document: data.personal.document,
-        birthDate: data.personal.birthDate,
-        clientType: data.personal.clientType,
-        maritalStatus: data.personal.maritalStatus,
-        sex: data.personal.sex,
-        phone: data.personal.phone,
-        email: data.personal.email,
-      },
-      documents: {
-        rg: data.docs.rg,
-        orgaoExpedidor: data.docs.orgaoExpedidor,
-        dataExpedicao: data.docs.dataExpedicao,
-        ufExpedidor: data.docs.ufExpedidor,
-        cnh: data.docs.cnh,
-        validadeCnh: data.docs.validadeCnh,
-        numeroPermissao: data.docs.numeroPermissao,
-        ratr: data.docs.ratr,
-      },
+    if (submitting) return
+    setSubmitError(null)
+    setSubmitting(true)
+    // Payload no formato da API real
+    const payload: CreateCustomerRequest = {
+      tax_type: data.personal.documentType,
+      tax_id: onlyDigits(data.personal.document),
+      full_name: data.personal.fullName,
+      gender: toGender(data.personal.sex),
+      email: data.personal.email || undefined,
+      birth_date: data.personal.birthDate || undefined,
+      customer_type: data.personal.clientType ? data.personal.clientType.toUpperCase() : undefined,
+      civil_status: toCivilStatus(data.personal.maritalStatus),
+      tel_number: onlyDigits(data.personal.phone),
       address: {
-        cep: data.address.cep,
         address: data.address.address,
         number: data.address.number,
         complement: data.address.complement,
         neighborhood: data.address.neighborhood,
         city: data.address.city,
         state: data.address.state,
+        zip_code: data.address.cep
+      },
+      documents: {
+        identity_number: data.docs.rg,
+        identity_org: data.docs.orgaoExpedidor,
+        identity_issued_at: data.docs.dataExpedicao,
+        identity_local: data.docs.ufExpedidor,
+        driver_license_number: data.docs.cnh,
+        driver_license_expiration: data.docs.validadeCnh,
+        driver_license_image: data.docs.photoCnh,
+        smtr_permission_number: data.docs.numeroPermissao,
+        smtr_permission_image: data.docs.photoPermissao,
+        smtr_ratr_number: data.docs.ratr
       }
     }
     try {
-      await fetch('https://jsonplaceholder.typicode.com/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-    } catch (e) {
-      // Mantém UX fluida; no futuro tratar com toast/erro
-    } finally {
+      await createCustomer(payload)
+      setShowSummary(false)
       setStep('success')
+    } catch (e) {
+      const msg = (e as Error).message
+      setSubmitError(msg)
+    } finally {
+      setSubmitting(false)
     }
   }
   return (
@@ -448,7 +496,14 @@ function Content() {
       {step === 'docs' && <DocumentsStep onNext={() => setStep('address')} onBack={() => setStep('personal')} />}
       {step === 'address' && <AddressStep onBack={() => setStep('docs')} onConfirm={() => setShowSummary(true)} />}
       {step === 'success' && <SuccessStep />}
-      {showSummary && <SummaryModal onClose={() => setShowSummary(false)} onConfirm={confirmRegister} />}
+      {showSummary && (
+        <SummaryModal
+          onClose={() => { if (!submitting) setShowSummary(false) }}
+          onConfirm={confirmRegister}
+          loading={submitting}
+          errorMessage={submitError}
+        />
+      )}
     </div>
   )
 }

@@ -68,6 +68,15 @@
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
   background: #fff;
 }
+.cardSkeleton {
+  border: 1px solid #e7eef0;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  background: #fff;
+  display: grid;
+  gap: 10px;
+}
 .cardLine {
   display: flex;
   gap: 6px;
@@ -186,6 +195,24 @@
   color: #fff;
 }
 .pageBtn:active { filter: brightness(1.06); transform: translateY(1px); }
+/* Skeleton loading rows */
+.skeleton {
+  display: inline-block;
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e7eef0 25%, #f3f7f9 37%, #e7eef0 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+.skeletonBadge {
+  height: 18px;
+  width: 34px;
+  border-radius: 999px;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
 /* FAB (hidden by default, visible only on mobile) */
 .fabWrap { display: none; }
 .fab {
