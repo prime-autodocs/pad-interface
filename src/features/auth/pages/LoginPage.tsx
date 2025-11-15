@@ -3,7 +3,7 @@ import styles from './LoginPage.module.css'
 import Button from '@components/ui/Button'
 import TextField from '@components/form/TextField'
 import BrandLogo from '@assets/images/brand-logo.png'
-import { authenticate } from '@services/auth/mockAuth'
+import { authenticate } from '@services/auth/apiAuth'
 import { useNavigate } from 'react-router-dom'
 import Eye from '@assets/icons/eye.png'
 import EyeOff from '@assets/icons/eye-off.png'
@@ -66,7 +66,9 @@ export default function LoginPage() {
               }
             />
             {error && <div className={styles.error}>{error}</div>}
-            <Button fullWidth disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</Button>
+            <Button fullWidth disabled={loading}>
+              {loading ? <span className={styles.spinner} aria-label="Carregando" /> : 'Entrar'}
+            </Button>
           </form>
         </div>
       </section>

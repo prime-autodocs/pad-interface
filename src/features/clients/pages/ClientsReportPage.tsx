@@ -49,7 +49,7 @@ function getFormattedDocument(c: Client): string {
 export default function ClientsReportPage() {
   const [query, setQuery] = React.useState('')
   const [typeFilter, setTypeFilter] = React.useState<ClientType | 'Todos'>('Todos')
-  const [perPage, setPerPage] = React.useState(7)
+  const [perPage, setPerPage] = React.useState(10)
   const [page, setPage] = React.useState(1)
   const [selected, setSelected] = React.useState<Client | null>(null)
   const [vehiclesFor, setVehiclesFor] = React.useState<Client | null>(null)

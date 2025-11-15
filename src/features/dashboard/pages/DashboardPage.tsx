@@ -2,15 +2,11 @@ import React from 'react'
 import styles from './DashboardPage.module.css'
 import SummaryCard from '../components/SummaryCard'
 import {
-  summaryCards,
   months,
-  novosClientesMensal,
   servicosRealizadosMensal,
   quarters,
-  novosClientesTrimestral,
   servicosRealizadosTrimestral,
   years,
-  novosClientesAnual,
   servicosRealizadosAnual,
   situacaoVistorias,
   situacaoCnh,
@@ -19,12 +15,89 @@ import {
 import 'chart.js/auto'
 import { ChartOptions } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
+import { fetchCardsSummary, fetchNewCustomers, type NewCustomersPeriod } from '@services/dashboard/apiDashboard'
+import { useFeatureFlags } from '@app/context/FeatureFlagsContext'
+import { fetchFeatureFlags } from '@services/featureFlags'
 
 type Period = 'mensal' | 'trimestral' | 'anual'
 
 export default function DashboardPage() {
+  const { flags, setFlags } = useFeatureFlags()
   const [periodNovos, setPeriodNovos] = React.useState<Period>('mensal')
   const [periodServ, setPeriodServ] = React.useState<Period>('mensal')
+  const cardsMeta = React.useMemo(() => ([
+    { id: 'clientes', label: 'CLIENTES CADASTRADOS', icon: '/src/assets/icons/summary/users.png', accent: '#111214', numberColor: '#111214', labelColor: '#111214' },
+    { id: 'veiculos', label: 'VEÍCULOS CADASTRADOS', icon: '/src/assets/icons/summary/car.png', accent: '#0a9fa9', numberColor: '#0a9fa9', labelColor: '#0a9fa9' },
+    { id: 'novos_clientes', label: 'NOVOS CLIENTES', icon: '/src/assets/icons/summary/new-clients.png', accent: '#14e0d4', numberColor: '#14e0d4', labelColor: '#14e0d4' },
+    { id: 'servicos', label: 'SERVIÇOS REALIZADOS', icon: '/src/assets/icons/summary/services.png', accent: '#0a9fa9', numberColor: '#0a9fa9', labelColor: '#0a9fa9' }
+  ]), [])
+  const [values, setValues] = React.useState<Record<string, number | string | undefined>>({})
+  const [loadingCards, setLoadingCards] = React.useState(true)
+  const hasFetched = React.useRef(false)
+  const [novosLabels, setNovosLabels] = React.useState<string[]>([])
+  const [novosValues, setNovosValues] = React.useState<number[]>([])
+  const [loadingNovos, setLoadingNovos] = React.useState(true)
+  const fetchedNovosFor = React.useRef<Period | null>(null)
+
+  React.useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
+    ;(async () => {
+      try {
+        // Fetch feature flags on dashboard entry
+        try {
+          const f = await fetchFeatureFlags()
+          setFlags(f)
+        } catch {
+          // ignore; keep existing flags
+        }
+        setLoadingCards(true)
+        const resp = await fetchCardsSummary()
+        setValues({
+          clientes: Number(resp.total_customers ?? 0),
+          veiculos: Number(resp.total_vehicles ?? 0),
+          novos_clientes: Number(resp.new_customers_current_month ?? 0),
+          servicos: Number(resp.services_current_month ?? 0)
+        })
+        setLoadingCards(false)
+      } catch {
+        // exibe N/A em caso de erro
+        setValues({
+          clientes: 'N/A',
+          veiculos: 'N/A',
+          novos_clientes: 'N/A',
+          servicos: 'N/A'
+        })
+        setLoadingCards(false)
+      }
+    })()
+  }, [])
+
+  React.useEffect(() => {
+    // In dev with React.StrictMode, effects run twice on mount. Avoid duplicate fetch for same period.
+    if (fetchedNovosFor.current === periodNovos) return
+    fetchedNovosFor.current = periodNovos
+    function map(p: Period): NewCustomersPeriod {
+      if (p === 'mensal') return 'monthly'
+      if (p === 'trimestral') return 'quarter'
+      return 'annual'
+    }
+    ;(async () => {
+      try {
+        setLoadingNovos(true)
+        const resp = await fetchNewCustomers(map(periodNovos))
+        setNovosLabels(resp.points.map((pt) => pt.label))
+        setNovosValues(resp.points.map((pt) => pt.value))
+        setLoadingNovos(false)
+      } catch {
+        setNovosLabels([])
+        setNovosValues([])
+        setLoadingNovos(false)
+      }
+    })()
+  }, [periodNovos])
+
+  const isSmallScreen = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches
 
   function buildBarOptions(period: Period): ChartOptions<'bar'> {
     return {
@@ -33,14 +106,31 @@ export default function DashboardPage() {
       plugins: { legend: { display: false } },
       scales: {
         y: { beginAtZero: true, grid: { color: '#eee' } },
-        x: { grid: { display: false }, ticks: period === 'anual' ? { font: { size: 13, weight: 600 } } : {} }
+        x: {
+          grid: { display: false },
+          ticks:
+            period === 'mensal'
+              ? {
+                  autoSkip: true,
+                  maxTicksLimit: isSmallScreen ? 6 : 12,
+                  maxRotation: 0,
+                  minRotation: 0,
+                  font: { size: isSmallScreen ? 10 : 12, weight: 600 }
+                }
+              : period === 'anual'
+              ? { maxRotation: 0, minRotation: 0, font: { size: 13, weight: 600 } }
+              : { maxRotation: 0, minRotation: 0 }
+        }
       }
     }
   }
   const doughnutOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { display: false } }
+    plugins: { legend: { display: false } },
+    layout: { padding: 0 },
+    cutout: '32%', // thicker donut
+    elements: { arc: { borderWidth: 0 } } // remove gaps between slices
   }
 
   function buildBarData(period: Period, monthly: number[], quarterly: number[], annual: number[]) {
@@ -64,7 +154,18 @@ export default function DashboardPage() {
 
   const barOptionsNovos = buildBarOptions(periodNovos)
   const barOptionsServ = buildBarOptions(periodServ)
-  const barDataNovos = buildBarData(periodNovos, novosClientesMensal, novosClientesTrimestral, novosClientesAnual)
+  const barDataNovos = {
+    labels: novosLabels,
+    datasets: [
+      {
+        data: novosValues,
+        backgroundColor: '#08B6C0',
+        maxBarThickness: isSmallScreen ? 18 : 28,
+        categoryPercentage: isSmallScreen ? 0.7 : 0.8,
+        barPercentage: isSmallScreen ? 0.7 : 0.8
+      }
+    ]
+  }
   const barDataServ = buildBarData(periodServ, servicosRealizadosMensal, servicosRealizadosTrimestral, servicosRealizadosAnual)
 
   const doughnutData1 = {
@@ -108,20 +209,42 @@ export default function DashboardPage() {
   return (
         <>
         <section className={styles.summaries}>
-          {summaryCards.map((c) => (
+          {cardsMeta
+            .filter((c) => {
+              // Helper: allow both dashed and snake_case keys
+              const isOn = (...keys: string[]) => {
+                const presentKeys = keys.filter((k) => k in flags)
+                if (presentKeys.length === 0) return true
+                return presentKeys.some((k) => flags[k] !== false)
+              }
+              if (c.id === 'clientes') return isOn('clientes_cadastrados', 'clientes-cadastrados')
+              if (c.id === 'veiculos') return isOn('veiculos_cadastrados', 'veiculos-cadastrados')
+              if (c.id === 'novos_clientes') return isOn('novos_clientes_resumo', 'novos-clientes-resumo')
+              if (c.id === 'servicos') return isOn('servicos_realizados_resumo', 'servicos-realizados_resumo', 'servicos-realizados-resumo')
+              return true
+            })
+            .map((c) => (
             <SummaryCard
               key={c.id}
-              value={c.value}
+              value={values[c.id] ?? 0}
               label={c.label}
               icon={c.icon}
               accent={c.accent}
               labelColor={c.labelColor}
               numberColor={c.numberColor}
+              loading={loadingCards}
             />
           ))}
         </section>
 
         <section className={styles.row}>
+          {(() => {
+            const present = 'grafico_novos_clientes' in flags || 'grafico-novos-clientes' in flags
+            const enabled =
+              (flags['grafico_novos_clientes'] !== false) &&
+              (flags['grafico-novos-clientes'] !== false)
+            return present ? enabled : true
+          })() && (
           <div className={styles.panel}>
             <div className={styles.panelHeader}>
               <h2>Novos Clientes</h2>
@@ -132,9 +255,27 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className={styles.chartBar}>
-              <Bar options={barOptionsNovos} data={barDataNovos} />
+              {loadingNovos ? (
+                <div className={styles.centerChart}>
+                  <span className={styles.chartSpinner} />
+                </div>
+              ) : novosValues.length > 0 ? (
+                <Bar options={barOptionsNovos} data={barDataNovos} />
+              ) : (
+                <div className={styles.centerChart}>
+                  <span className={styles.emptyText}>Sem dados</span>
+                </div>
+              )}
             </div>
           </div>
+          )}
+          {(() => {
+            const present = 'grafico_servicos_realizados' in flags || 'grafico-servicos-realizados' in flags
+            const enabled =
+              (flags['grafico_servicos_realizados'] !== false) &&
+              (flags['grafico-servicos-realizados'] !== false)
+            return present ? enabled : true
+          })() && (
           <div className={styles.panel}>
             <div className={styles.panelHeader}>
               <h2>Serviços Realizados</h2>
@@ -148,9 +289,17 @@ export default function DashboardPage() {
               <Bar options={barOptionsServ} data={barDataServ} />
             </div>
           </div>
+          )}
         </section>
 
         <section className={styles.row}>
+          {(() => {
+            const present = 'grafico_situacao_vistorias' in flags || 'grafico-situacao-vistorias' in flags
+            const enabled =
+              (flags['grafico_situacao_vistorias'] !== false) &&
+              (flags['grafico-situacao-vistorias'] !== false)
+            return present ? enabled : true
+          })() && (
           <div className={styles.panel}>
             <h2>Situação das Vistorias</h2>
             <div className={styles.chartDonut}>
@@ -166,6 +315,14 @@ export default function DashboardPage() {
               ))}
             </ul>
           </div>
+          )}
+          {(() => {
+            const present = 'grafico_situacao_cnh' in flags || 'grafico-situacao-cnh' in flags
+            const enabled =
+              (flags['grafico_situacao_cnh'] !== false) &&
+              (flags['grafico-situacao-cnh'] !== false)
+            return present ? enabled : true
+          })() && (
           <div className={styles.panel}>
             <h2>Situação das CNH</h2>
             <div className={styles.chartDonut}>
@@ -181,6 +338,14 @@ export default function DashboardPage() {
               ))}
             </ul>
           </div>
+          )}
+          {(() => {
+            const present = 'painel_pedidos_em_andamento' in flags || 'painel-pedidos-em-andamento' in flags
+            const enabled =
+              (flags['painel_pedidos_em_andamento'] !== false) &&
+              (flags['painel-pedidos-em-andamento'] !== false)
+            return present ? enabled : true
+          })() && (
           <div className={styles.panel}>
             <h2>Pedidos em Andamento</h2>
             <div className={styles.ordersHeader}>
@@ -190,38 +355,53 @@ export default function DashboardPage() {
                   <span className={styles.metricLabel}>Pedidos Totais</span>
                 </div>
                 <div>
-                  <span className={styles.metricValue}>{abertos}</span>
-                  <span className={styles.metricLabel}>Abertos</span>
+                  <span className={`${styles.metricValue} ${styles.metricValueOpen}`}>{abertos}</span>
+                  <span className={`${styles.metricLabel} ${styles.metricLabelOpen}`}>Abertos</span>
                 </div>
                 <div>
-                  <span className={styles.metricValue}>{emProgresso}</span>
-                  <span className={styles.metricLabel}>Em Progresso</span>
+                  <span className={`${styles.metricValue} ${styles.metricValueInProgress}`}>{emProgresso}</span>
+                  <span className={`${styles.metricLabel} ${styles.metricLabelInProgress}`}>Em Progresso</span>
                 </div>
                 <div>
                   <span className={styles.metricValueDanger}>{atrasados}</span>
-                  <span className={styles.metricLabel}>Atrasados</span>
+                  <span className={`${styles.metricLabel} ${styles.metricLabelDanger}`}>Atrasados</span>
                 </div>
                 <div>
-                  <span className={styles.metricValue}>{completos}</span>
-                  <span className={styles.metricLabel}>Completos</span>
+                  <span className={`${styles.metricValue} ${styles.metricValueComplete}`}>{completos}</span>
+                  <span className={`${styles.metricLabel} ${styles.metricLabelComplete}`}>Completos</span>
                 </div>
               </div>
             </div>
             <ul className={styles.ordersList}>
-              {pedidosEmAndamento.map((p) => (
+              {pedidosEmAndamento.map((p) => {
+                const dotClass =
+                  p.status === 'Atrasado' ? styles.danger :
+                  p.status === 'Em Progresso' ? styles.inProgress :
+                  p.status === 'Aberto' ? styles.open :
+                  p.status === 'Completo' ? styles.complete :
+                  styles.progress
+                const chipClass =
+                  p.status === 'Atrasado' ? styles.chipDanger :
+                  p.status === 'Em Progresso' ? styles.chipInProgress :
+                  p.status === 'Aberto' ? styles.chipOpen :
+                  p.status === 'Completo' ? styles.chipComplete :
+                  styles.chipProgress
+                return (
                 <li key={p.id} className={styles.orderItem}>
                   <div className={styles.orderLegend}>
-                    <span className={`${styles.dot} ${p.status === 'Atrasado' ? styles.danger : styles.progress}`} />
+                    <span className={`${styles.dot} ${dotClass}`} />
                     <span className={styles.orderTitle}>{p.titulo}</span>
                     <span className={styles.orderClient}>{p.cliente}</span>
                   </div>
-                  <span className={`${styles.chip} ${p.status === 'Atrasado' ? styles.chipDanger : styles.chipProgress}`}>
+                  <span className={`${styles.chip} ${chipClass}`}>
                     {p.status}
                   </span>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </div>
+          )}
         </section>
         </>
   )

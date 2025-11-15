@@ -1,11 +1,13 @@
 .sidebar {
   width: 240px;
+  height: 100vh;
   background: #0c0d10;
   color: #f5f7fa;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
+  overflow: hidden; /* não rolar o menu */
 }
 .logoArea {
   height: 110px;

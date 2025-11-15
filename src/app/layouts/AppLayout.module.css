@@ -3,7 +3,6 @@
 .app {
   display: grid;
   grid-template-columns: 240px 1fr;
-  min-height: 100vh;
   background: linear-gradient(to right, #0c0d10 0 240px, #eef3f4 240px 100%);
   color: #0f1115;
   overflow-x: hidden;
@@ -11,9 +10,11 @@
 .main {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  min-width: 0;
+  gap: 12px;
+  height: 100vh;       /* ocupa a viewport toda */
+  overflow-y: auto;    /* somente o conteúdo rola */
   overflow-x: hidden;
+  padding-bottom: 0;
 }
 .header {
   background: #dfe6e7;

@@ -10,7 +10,6 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  min-width: 0;
   overflow-x: hidden;
 }
 .header {
@@ -37,45 +36,50 @@
 }
 .summaries {
   display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 18px;
   padding: 18px 24px 0;
 }
 .row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 18px;
-  padding: 0 24px 18px;
+  padding: 0 24px 8px;
   align-items: start;
 }
 .row > * {
   min-width: 0;
 }
 .row:last-child {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 2fr;
+  height: 40%;
   align-items: stretch;
 }
 
 .row:last-child .panel {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: auto;
 }
 .row:last-child .chartDonut {
-  flex: 1;
-  min-height: 180px;
+  height: auto;
+  margin: 4px auto;
+  display: grid;
+  place-items: center;
 }
+
 .row:last-child .legend {
-  margin-top: 8px;
+  margin: 6px 10px 10px;
 }
 .panel {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 1px 0 rgba(0,0,0,0.05), 0 8px 30px rgba(0,0,0,0.08);
-  padding: 12px 12px 8px;
+  padding: 24px 24px 8px;
   min-width: 0;
-  overflow-x: hidden;
+  overflow: hidden; /* evita barras internas nos gráficos/cards */
 }
+
 .panel h2 {
   margin: 0 0 12px;
   font-size: 16px;
@@ -111,15 +115,50 @@
 }
 .chartBar {
   position: relative;
+  display: grid;
+  place-items: center;
   width: 100%;
   height: 280px;
+  overflow: hidden; /* evita scroll quando o canvas passa 1px */
+}
+.emptyText {
+  color: #98a2a8;
+  font-weight: 600;
+}
+.skeletonChart {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eeeeee 0%, #f7f7f7 40%, #eeeeee 80%);
+  background-size: 200% 100%;
+  animation: shimmer 1.15s infinite linear;
+}
+.chartSpinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid #e3edf0;
+  border-top-color: #08B6C0;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 .chartDonut {
   position: relative;
   width: 100%;
-  height: 200px;
+  max-width: 420px;
+  aspect-ratio: 1 / 1; /* perfect square */
+  margin: 0 auto;
   display: grid;
   place-items: center;
+}
+.chartDonut canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 .legend {
   margin: 6px 6px 4px;
@@ -164,28 +203,42 @@
 .ordersMetrics {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
+  gap: 5px;
 }
 .ordersMetrics > div {
+  text-align: center;
   min-width: 0;
 }
 .metricValue, .metricValueDanger {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   margin-right: 6px;
 }
 .metricValueDanger {
   color: #d93025;
 }
+.metricValueOpen {
+  color: #1e88e5;
+}
+.metricValueInProgress {
+  color: #f2994a;
+}
+.metricValueComplete {
+  color: #2e7d32;
+}
 .metricLabel {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: #7b848a;
   text-transform: uppercase;
   line-height: 1.1;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.metricLabelDanger { color: #d93025; }
+.metricLabelOpen { color: #1e88e5; }
+.metricLabelInProgress { color: #f2994a; }
+.metricLabelComplete { color: #2e7d32; }
 .ordersList {
   list-style: none;
   padding: 0;
@@ -193,7 +246,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px;
@@ -238,6 +290,15 @@
 .danger {
   background: #d93025;
 }
+.open {
+  background: #1e88e5;
+}
+.inProgress {
+  background: #f2994a;
+}
+.complete {
+  background: #2e7d32;
+}
 .progress {
   background: #08B6C0;
 }
@@ -252,9 +313,33 @@
   background: #fde7e6;
   color: #d93025;
 }
+.chipOpen {
+  background: #e6f1fe;
+  color: #1e88e5;
+}
+.chipInProgress {
+  background: #fff4e5;
+  color: #f2994a;
+}
+.chipComplete {
+  background: #e9f7ef;
+  color: #2e7d32;
+}
 .chipProgress {
   background: #e6f7f8;
   color: #08B6C0;
+}
+
+@media (max-width: 1280px) {
+  .ordersMetrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .row:last-child {
+    height: auto;
+  }
+  .row:last-child .panel {
+    height: auto;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -266,11 +351,7 @@
   }
 }
 
-@media (max-width: 1280px) {
-  .ordersMetrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
+
 
 @media (max-width: 900px) {
   .app {
@@ -333,6 +414,7 @@
   .legend {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
 }
 
 /* Drawer mobile */

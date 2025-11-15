@@ -9,6 +9,7 @@ import DashboardPage from '@features/dashboard/pages/DashboardPage'
 import ClientsReportPage from '@features/clients/pages/ClientsReportPage'
 import ClientRegisterPage from '@features/clients/pages/register/ClientRegisterPage'
 import NewVehiclePage from '@features/vehicles/pages/NewVehiclePage'
+import { FeatureFlagsProvider } from '@app/context/FeatureFlagsContext'
 
 const router = createBrowserRouter([
   { path: '/', element: <LoginPage /> },
@@ -31,7 +32,9 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <FeatureFlagsProvider>
+      <RouterProvider router={router} />
+    </FeatureFlagsProvider>
   </React.StrictMode>
 )
 

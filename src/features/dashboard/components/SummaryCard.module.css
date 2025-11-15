@@ -51,4 +51,18 @@
   filter: drop-shadow(0 2px 0 rgba(0,0,0,0.03));
 }
 
+.skeletonCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 96px;
+  background: linear-gradient(90deg, #eeeeee 0%, #f7f7f7 40%, #eeeeee 80%);
+  background-size: 200% 100%;
+  animation: shimmer 1.15s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 

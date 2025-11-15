@@ -1,53 +1,13 @@
-export const summaryCards = [
-  {
-    id: 'clientes',
-    label: 'CLIENTES CADASTRADOS',
-    value: 405,
-    icon: '/src/assets/icons/summary/users.png',
-    accent: '#111214',
-    numberColor: '#111214',
-    labelColor: '#111214'
-  },
-  {
-    id: 'veiculos',
-    label: 'VEÍCULOS CADASTRADOS',
-    value: 203,
-    icon: '/src/assets/icons/summary/car.png',
-    accent: '#0a9fa9',
-    numberColor: '#0a9fa9',
-    labelColor: '#0a9fa9'
-  },
-  {
-    id: 'novos_clientes',
-    label: 'NOVOS CLIENTES',
-    value: 102,
-    icon: '/src/assets/icons/summary/new-clients.png',
-    accent: '#14e0d4',
-    numberColor: '#14e0d4',
-    labelColor: '#14e0d4'
-  },
-  {
-    id: 'servicos',
-    label: 'SERVIÇOS REALIZADOS',
-    value: 5,
-    icon: '/src/assets/icons/summary/services.png',
-    accent: '#0a9fa9',
-    numberColor: '#0a9fa9',
-    labelColor: '#0a9fa9'
-  }
-]
+// summaryCards mock removido em favor de dados de API
 
 export const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
-export const novosClientesMensal = [20,12,15,40,12,28,9,2,19,21,16,8]
 export const servicosRealizadosMensal = [20,12,15,40,0,28,9,2,16,20,13,7]
 
-export const quarters = ['1° Quarter','2° Quarter','3° Quarter','4° Quarter']
-export const novosClientesTrimestral = [47,51,30,33]
+export const quarters = ['1° Trimestre','2° Trimestre','3° Trimestre','4° Trimestre']
 export const servicosRealizadosTrimestral = [47,39,27,33]
 
 export const years = [2021, 2022, 2023, 2024, 2025]
-export const novosClientesAnual = [210, 260, 300, 280, 320]
 export const servicosRealizadosAnual = [180, 240, 310, 270, 295]
 
 export const situacaoVistorias = [
