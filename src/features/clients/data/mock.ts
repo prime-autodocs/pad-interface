@@ -1,17 +1,15 @@
-export type ClientType = 'Detran' | 'SMTR' | 'Ambos'
-
 export type Client = {
   id: string
   nome: string
   documentType: 'CPF' | 'CNPJ'
   document: string
   placa: string
-  tipo: ClientType
+  tipo: string
   veiculos: number
   vehicles?: Vehicle[]
   phone?: string
   birthDate?: string
-  sex?: 'Masculino' | 'Feminino' | null
+  sex: string
   permissionNumber?: string | null
   address?: {
     street: string
@@ -41,8 +39,6 @@ export type Vehicle = {
   color?: string
   crv?: string | null
 }
-
-export const clientTypes: ClientType[] = ['Detran', 'SMTR', 'Ambos']
 
 export const clientsMock: Client[] = [
   {
@@ -189,7 +185,7 @@ export const clientsMock: Client[] = [
     veiculos: 6,
     phone: '(21) 2200-1234',
     birthDate: '2008-01-01',
-    sex: undefined,
+    sex: '',
     permissionNumber: '554433',
     address: { street: 'Rua do Mercado, 100', city: 'Rio de Janeiro', state: 'RJ', zip: '20010-120' }
   },
@@ -263,7 +259,7 @@ export const clientsMock: Client[] = [
     veiculos: 5,
     phone: '(21) 3333-4444',
     birthDate: '2012-05-05',
-    sex: undefined,
+    sex: '',
     permissionNumber: '112233',
     address: { street: 'Rua H, 77', city: 'Rio de Janeiro', state: 'RJ', zip: '21011-222' }
   },
@@ -292,7 +288,7 @@ export const clientsMock: Client[] = [
     veiculos: 12,
     phone: '(21) 4002-8922',
     birthDate: '2015-10-10',
-    sex: undefined,
+    sex: '',
     permissionNumber: null,
     address: { street: 'Av. Brasil, 5000', city: 'Rio de Janeiro', state: 'RJ', zip: '21050-000' }
   }

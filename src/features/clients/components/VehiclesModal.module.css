@@ -14,7 +14,7 @@
   z-index: 2201;
 }
 .card {
-  width: min(860px, 92vw);
+  width: min(960px, 94vw);
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.22);
@@ -49,10 +49,45 @@
   cursor: pointer;
 }
 .body {
-  max-height: min(60vh, 520px);
+  max-height: 64vh;
+  overflow-y: auto;
 }
 .scroll {
   overflow-y: auto;
+}
+.grid {
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px 16px 4px;
+}
+.vehCard {
+  border: 1px solid #e7eef0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.vehTitle {
+  font-weight: 700;
+  color: #3d474f;
+  margin: 0;
+}
+.vehMuted {
+  color: #6b747a;
+  font-size: 12px;
+}
+.vehRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cardActions {
+  display: inline-flex;
+  gap: 8px;
 }
 .tableWrap { width: 100%; overflow-x: auto; }
 .table {
@@ -67,6 +102,7 @@
   padding: 10px 14px;
   background: #f5f8f9;
 }
+.actionsCol { text-align: right; width: 120px; }
 .row { border-top: 1px solid #eef3f4; }
 .cell { padding: 10px 14px; }
 .plateBtn {
@@ -84,6 +120,55 @@
   border-radius: 999px;
   padding: 6px 12px;
   cursor: pointer;
+}
+.actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+  width: 100%;
+}
+.actionsMobile { display: none; }
+.mobileBtn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-left: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: #e7eef0;
+  color: #4b5661;
+  cursor: pointer;
+}
+.mobileDanger {
+  background: #ffe8e6;
+  color: #c62828;
+}
+.actionBtn {
+  border: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #e7eef0;
+  color: #4b5661;
+  cursor: pointer;
+}
+.danger {
+  background: #ffe8e6;
+  color: #c62828;
+}
+
+/* Mobile tweaks */
+@media (max-width: 640px) {
+  .actionsCol { display: none; }
+  .actionsMobile {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .thead th { font-size: 12px; padding: 8px 10px; }
+  .cell { font-size: 14px; padding: 10px 12px; }
 }
 .empty {
   padding: 16px;
@@ -122,24 +207,26 @@
 
 /* Responsivo (mobile) */
 @media (max-width: 640px) {
-  .card {
-    width: 96vw;
-  }
+  .card { width: 96vw; }
+  .grid { display: grid; grid-template-columns: 1fr; padding: 8px 12px 4px; }
   .title {
     font-size: 20px;
   }
   .body {
     max-height: 62vh;
   }
-  .table {
-    min-width: 0;
-  }
-  .tableWrap {
-    overflow-x: hidden; /* remove scroll horizontal no mobile */
-  }
+  .table { min-width: 0; }
+  .tableWrap { display: none; }
   .cell {
     font-size: 14px;   /* fontes menores nas linhas no mobile */
     padding: 8px 12px; /* compacta um pouco a linha */
+  }
+  .actionsCol { display: none; }
+  .actionsMobile {
+    display: inline-flex;
+    gap: 8px;
+    margin-left: 8px;
+    vertical-align: middle;
   }
 }
 

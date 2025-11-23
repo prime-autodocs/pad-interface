@@ -2,8 +2,9 @@ import React from 'react'
 import styles from './ClientRegisterPage.module.css'
 import successImage from '@assets/icons/success-icon.png'
 import { ClientRegisterProvider, useClientRegister, DocumentType, ClientKind } from '../../context/ClientRegisterContext'
-import { useNavigate } from 'react-router-dom'
-import { createCustomer, type CreateCustomerRequest } from '@services/customers/apiCustomers'
+import { useNavigate, useParams } from 'react-router-dom'
+import { createCustomer, type CreateCustomerRequest, updateCustomer } from '@services/customers/apiCustomers'
+import { fetchCustomerDetails } from '@services/reports/apiReports'
 
 function isValidCPF(doc: string) {
   const d = doc.replace(/\D/g, '')
@@ -140,7 +141,16 @@ function PersonalStep({ onNext }: { onNext: () => void }) {
             <button className={`${styles.btn} ${styles.primary}`} onClick={() => fileRef.current?.click()}>Carregar imagem</button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) setPersonal({ photoUrl: URL.createObjectURL(f) })
+              if (f) {
+                const objectUrl = URL.createObjectURL(f)
+                const reader = new FileReader()
+                reader.onload = () => {
+                  const res = String(reader.result || '')
+                  const base64 = res.includes(',') ? res.split(',')[1] : res
+                  setPersonal({ photoUrl: objectUrl, customerImage: base64 })
+                }
+                reader.readAsDataURL(f)
+              }
             }} />
           </div>
         </aside>
@@ -195,6 +205,14 @@ function DocumentsStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
 
         <div className={styles.label}>RATR</div>
         <input className={styles.input} value={data.docs.ratr || ''} onChange={(e) => setDocs({ ratr: e.target.value })} />
+
+        <div className={styles.label}>Data do Curso 168</div>
+        <input
+          className={styles.input}
+          type="date"
+          value={data.docs.courseDueDate || ''}
+          onChange={(e) => setDocs({ courseDueDate: e.target.value })}
+        />
       </div>
         </div>
         <aside className={styles.sideCard}>
@@ -231,7 +249,7 @@ function DocumentsStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
       <div className={styles.actions}>
         <button className={`${styles.btn} ${styles.muted}`} onClick={onBack}>Voltar</button>
         <button className={`${styles.btn} ${styles.primary}`} onClick={onNext}>Próximo</button>
-        <button className={`${styles.btn} ${styles.muted}`} onClick={() => setDocs({ rg: '', orgaoExpedidor: '', dataExpedicao: '', ufExpedidor: '', cnh: '', validadeCnh: '', numeroPermissao: '', ratr: '' })}>Limpar Dados</button>
+        <button className={`${styles.btn} ${styles.muted}`} onClick={() => setDocs({ rg: '', orgaoExpedidor: '', dataExpedicao: '', ufExpedidor: '', cnh: '', validadeCnh: '', numeroPermissao: '', ratr: '', courseDueDate: '' })}>Limpar Dados</button>
       </div>
     </div>
   )
@@ -414,22 +432,22 @@ function SuccessStep() {
   )
 }
 
-function toGender(sex?: 'Masculino' | 'Feminino' | 'Outro'): 'male' | 'female' | 'other' | undefined {
-  if (!sex) return undefined
-  if (sex === 'Masculino') return 'male'
-  if (sex === 'Feminino') return 'female'
-  return 'other'
+function toGender(sex: string): 'Masculino' | 'Feminino' | 'Outros' {
+  if (sex === 'Masculino') return 'Masculino'
+  if (sex === 'Feminino') return 'Feminino'
+  if (sex === 'Outros') return 'Outros'
+  return 'Outros'
 }
 
-function toCivilStatus(status?: string): string | undefined {
-  if (!status) return undefined
-  const s = status.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
-  if (s.includes('solteir')) return 'single'
-  if (s.includes('casad')) return 'married'
-  if (s.includes('divorci')) return 'divorced'
-  if (s.includes('viuv')) return 'widowed'
-  if (s.includes('uniao')) return 'stable_union'
-  return status.toLowerCase()
+function toCivilStatus(status?: string): string {
+  const s = status?.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  if (!s) return 'Solteiro(a)'
+  if (s.includes('solteir')) return 'Solteiro(a)'
+  if (s.includes('casad')) return 'Casado(a)'
+  if (s.includes('divorci')) return 'Divorciado(a)'
+  if (s.includes('viuv')) return 'Viúvo(a)'
+  if (s.includes('uniao')) return 'União Estável'
+  return 'Solteiro(a)'
 }
 
 function onlyDigits(v?: string): string {
@@ -441,7 +459,57 @@ function Content() {
   const [showSummary, setShowSummary] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
-  const { data } = useClientRegister()
+  const { data, setPersonal, setDocs, setAddress } = useClientRegister()
+  const params = useParams()
+  const editingId = params.id
+
+  // Prefill if editing
+  const [hasPrefilled, setHasPrefilled] = React.useState(false)
+  React.useEffect(() => {
+    let active = true
+    ;(async () => {
+      if (!editingId || hasPrefilled) return
+      try {
+        const det = await fetchCustomerDetails(editingId)
+        if (!active) return
+        setPersonal({
+          fullName: det.full_name,
+          documentType: det.tax_type,
+          document: det.tax_id,
+          birthDate: det.birth_date,
+          clientType: det.customer_type === 'DETRAN' ? 'Detran' : det.customer_type === 'SMTR' ? 'SMTR' : det.customer_type === 'AMBOS' ? 'Ambos' : undefined,
+          maritalStatus: det.civil_status,
+          sex: det.gender,
+          phone: det.tel_number,
+          email: det.email
+        })
+        setDocs({
+          rg: det.documents.identity_number,
+          orgaoExpedidor: det.documents.identity_org,
+          dataExpedicao: det.documents.identity_issued_at,
+          ufExpedidor: det.documents.identity_local,
+          cnh: det.documents.driver_license_number,
+          validadeCnh: det.documents.driver_license_expiration,
+          numeroPermissao: det.documents.smtr_permission_number,
+          ratr: det.documents.smtr_ratr_number,
+          courseDueDate: (det as any).documents?.course_due_date
+        })
+        setAddress({
+          cep: det.address.zip_code,
+          address: det.address.address,
+          number: det.address.number,
+          complement: det.address.complement,
+          neighborhood: det.address.neighborhood,
+          city: det.address.city,
+          state: det.address.state
+        })
+        setHasPrefilled(true)
+      } catch (e) {
+        // falha em prefill não deve travar a tela
+      }
+    })()
+    return () => { active = false }
+  }, [editingId, hasPrefilled])
   async function confirmRegister() {
     if (submitting) return
     setSubmitError(null)
@@ -451,12 +519,13 @@ function Content() {
       tax_type: data.personal.documentType,
       tax_id: onlyDigits(data.personal.document),
       full_name: data.personal.fullName,
-      gender: toGender(data.personal.sex),
+      gender: data.personal.sex,
       email: data.personal.email || undefined,
       birth_date: data.personal.birthDate || undefined,
       customer_type: data.personal.clientType ? data.personal.clientType.toUpperCase() : undefined,
-      civil_status: toCivilStatus(data.personal.maritalStatus),
+      civil_status: data.personal.maritalStatus,
       tel_number: onlyDigits(data.personal.phone),
+      customer_image: data.personal.customerImage,
       address: {
         address: data.address.address,
         number: data.address.number,
@@ -476,11 +545,16 @@ function Content() {
         driver_license_image: data.docs.photoCnh,
         smtr_permission_number: data.docs.numeroPermissao,
         smtr_permission_image: data.docs.photoPermissao,
-        smtr_ratr_number: data.docs.ratr
+        smtr_ratr_number: data.docs.ratr,
+        course_due_date: data.docs.courseDueDate
       }
     }
     try {
-      await createCustomer(payload)
+      if (editingId) {
+        await updateCustomer(editingId, payload)
+      } else {
+        await createCustomer(payload)
+      }
       setShowSummary(false)
       setStep('success')
     } catch (e) {

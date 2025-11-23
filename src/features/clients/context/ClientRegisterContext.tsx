@@ -9,11 +9,12 @@ export type PersonalData = {
   document: string
   birthDate?: string
   clientType?: ClientKind
-  maritalStatus?: string
-  sex?: 'Masculino' | 'Feminino' | 'Outro'
+  maritalStatus: string
+  sex: string
   phone: string
   email?: string
   photoUrl?: string
+  customerImage?: string
 }
 
 export type DocumentsData = {
@@ -25,6 +26,7 @@ export type DocumentsData = {
   validadeCnh?: string
   numeroPermissao?: string
   ratr?: string
+  courseDueDate?: string
   photoCnh?: string
   photoPermissao?: string
 }
@@ -58,8 +60,11 @@ const defaultState: ClientRegisterState = {
     fullName: '',
     documentType: 'CPF',
     document: '',
+    birthDate: '',
+    maritalStatus: '',
+    sex: '',
     phone: '',
-    clientType: undefined
+    clientType: undefined,
   },
   docs: {},
   address: {}

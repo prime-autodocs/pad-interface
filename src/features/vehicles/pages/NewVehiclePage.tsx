@@ -2,12 +2,63 @@ import React from 'react'
 import styles from '../../clients/pages/register/ClientRegisterPage.module.css'
 import { VehicleRegisterProvider, useVehicleRegister } from '../context/VehicleRegisterContext'
 import successImage from '@assets/icons/success-icon.png'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { fetchAvailableCustomers } from '@services/customers/apiCustomers'
-import { createVehicle } from '@services/vehicles/apiVehicles'
+import { createVehicle, updateVehicle } from '@services/vehicles/apiVehicles'
+import { fetchVehicleDetails } from '@services/reports/apiReports'
 
 function normalize(str: string) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+function fromApiCategory(value?: string): string | undefined {
+  if (!value) return undefined
+  const v = normalize(String(value))
+  const map: Record<string, string> = {
+    'particular': 'Particular',
+    'aluguel': 'Aluguel'
+  }
+  return map[v]
+}
+function toApiCategory(label?: string): string | undefined {
+  if (!label) return undefined
+  const v = normalize(String(label))
+  const map: Record<string, string> = {
+    'Particular': 'particular',
+    'Aluguel': 'aluguel'
+  }
+  return map[v]
+}
+function toApiFuel(label?: string): string | undefined {
+  if (!label) return undefined
+  const key = normalize(label)
+  const map: Record<string, string> = {
+    'alcool': 'alchool',
+    'gas': 'gas',
+    'gasolina': 'gasoline',
+    'alcool/gasolina': 'alchool_gas',
+    'gasolina/gas': 'gasoline_gas',
+    'diesel': 'diesel',
+    'eletrico': 'electric'
+  }
+  return map[key]
+}
+function fromApiFuel(value?: string): string | undefined {
+  if (!value) return undefined
+  const v = normalize(String(value))
+  const map: Record<string, string> = {
+    alchool: 'Álcool',
+    gas: 'Gás',
+    gasoline: 'Gasolina',
+    alchool_gas: 'Álcool/Gasolina',
+    gasoline_gas: 'Gasolina/Gas',
+    diesel: 'Diesel',
+    electric: 'Elétrico'
+  }
+  // tenta matches diretos
+  if (map[v]) return map[v]
+  // tenta normalizar separadores
+  const v2 = v.replace(/\s+/g, '').replace(/-/g, '_')
+  return map[v2]
 }
 function formatCpf(cpf: string) {
   const d = cpf.replace(/\D/g, '')
@@ -286,13 +337,13 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
             <div className={styles.label}>Combustível</div>
             <select className={styles.select} value={data.vehicle.fuel || ''} onChange={(e) => setVehicle({ fuel: e.target.value })}>
               <option value="">Selecione</option>
+              <option>Álcool</option>
+              <option>Gás</option>
               <option>Gasolina</option>
-              <option>Alcool</option>
-              <option>Gas/Gasolina</option>
-              <option>Gas/Alcool</option>
-              <option>Eletrico</option>
+              <option>Álcool/Gasolina</option>
+              <option>Gasolina/Gas</option>
               <option>Diesel</option>
-              <option>Gasolina/Alcool</option>
+              <option>Elétrico</option>
             </select>
 
             <div className={styles.label}>Categoria</div>
@@ -405,7 +456,60 @@ function Content() {
   const [showSummary, setShowSummary] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
-  const { data, setVehicle } = useVehicleRegister()
+  const { data, setVehicle, setClient } = useVehicleRegister()
+  const params = useParams()
+  const location = useLocation() as any
+  const editingVehicleId = params.id
+
+  // Prefill for edit
+  const [hasPrefilled, setHasPrefilled] = React.useState(false)
+  React.useEffect(() => {
+    let active = true
+    ;(async () => {
+      if (!editingVehicleId || hasPrefilled) return
+      try {
+        const det = await fetchVehicleDetails(editingVehicleId)
+        if (!active) return
+        setVehicle({
+          brand: det.brand || '',
+          model: det.model || '',
+          plate: det.number_plate || '',
+          chassis: det.chassis || '',
+          renavam: det.national_registry || '',
+          year: det.year_fabric || '',
+          modelYear: det.year_model || '',
+          color: det.color || '',
+          crv: det.certification_number || '',
+          // usa diretamente o valor retornado pela API para exibir no select;
+          // se por algum motivo vier em outro formato, tenta converter
+          fuel: det.fuel || fromApiFuel(det.fuel),
+          category: det.category || fromApiCategory(det.category)
+        })
+        const st = (location?.state || {}) as { customer_id?: string | number; customer_name?: string; tax_id?: string }
+        const cid = det.customer_id ?? st.customer_id
+        const tax = st.tax_id
+        let documentType: 'CPF' | 'CNPJ' = 'CPF'
+        let document = ''
+        if (tax) {
+          const digits = tax.replace(/\D/g, '')
+          documentType = digits.length === 14 ? 'CNPJ' : 'CPF'
+          document = digits
+        }
+        setClient({
+          id: cid ? String(cid) : (data.client?.id || ''),
+          nome: st.customer_name || data.client?.nome || '',
+          documentType,
+          document,
+          phone: data.client?.phone
+        })
+        setHasPrefilled(true)
+        setStep('docs')
+      } catch {
+        // ignore prefill errors
+      }
+    })()
+    return () => { active = false }
+  }, [editingVehicleId, hasPrefilled, setVehicle])
 
   async function confirm() {
     if (submitting) return
@@ -420,14 +524,18 @@ function Content() {
       national_registry: data.vehicle.renavam || undefined,
       year_fabric: data.vehicle.year || undefined,
       year_model: data.vehicle.modelYear || undefined,
-      fuel: data.vehicle.fuel || undefined,
+      fuel: toApiFuel(data.vehicle.fuel),
       color: data.vehicle.color || undefined,
-      category: data.vehicle.category || undefined,
+      category: toApiCategory(data.vehicle.category) || undefined,
       certification_number: data.vehicle.crv || undefined,
       crlv_image: data.vehicle.docPhotoUrl || undefined
     }
     try {
-      await createVehicle(payload)
+      if (editingVehicleId) {
+        await updateVehicle(editingVehicleId, payload)
+      } else {
+        await createVehicle(payload)
+      }
       setShowSummary(false)
       setStep('success')
     } catch (e) {

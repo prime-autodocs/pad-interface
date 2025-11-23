@@ -13,6 +13,7 @@ export type VehicleCreateRequest = {
   certification_number?: string
   crlv_image?: string
 }
+export type VehicleUpdateRequest = VehicleCreateRequest
 
 function getBaseUrl(): string {
   const base = import.meta.env.VITE_API_BASE_URL as string | undefined
@@ -44,12 +45,53 @@ export async function createVehicle(payload: VehicleCreateRequest): Promise<void
   }
 }
 
+export async function updateVehicle(vehicleId: string | number, payload: VehicleUpdateRequest): Promise<void> {
+  const baseUrl = getBaseUrl()
+  const idStr = encodeURIComponent(String(vehicleId))
+  const url = `${baseUrl}/vehicles/${idStr}?vehicle_id=${idStr}`
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    credentials: getCredentialsMode(),
+    body: JSON.stringify(payload)
+  })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const j = await res.json()
+      detail = j?.detail ?? j?.message
+    } catch {}
+    throw new Error(detail ?? `Erro ao atualizar veículo (${res.status})`)
+  }
+}
+
+export async function deleteVehicle(vehicleId: string | number): Promise<void> {
+  const baseUrl = getBaseUrl()
+  const url = `${baseUrl}/vehicles/${encodeURIComponent(String(vehicleId))}`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    credentials: getCredentialsMode(),
+    headers: { Accept: 'application/json' }
+  })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const j = await res.json()
+      detail = j?.detail ?? j?.message
+    } catch {}
+    throw new Error(detail ?? `Erro ao excluir veículo (${res.status})`)
+  }
+}
+
 export type VehicleListItem = {
   id: string | number
   brand: string
   model: string
   number_plate: string
   last_legalization_year?: number
+  customer_id?: string | number
+  customer_name?: string
+  tax_id?: string
 }
 
 export async function fetchVehiclesByCustomer(customerId: string | number): Promise<VehicleListItem[]> {

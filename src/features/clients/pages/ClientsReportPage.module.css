@@ -191,6 +191,28 @@
   display: inline-flex;
   gap: 6px;
 }
+.actionsCol {
+  width: 150px;
+  text-align: right;
+}
+.actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.actionBtn {
+  border: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #e7eef0;
+  color: #4b5661;
+}
+.danger {
+  background: #ffe8e6;
+  color: #c62828;
+}
 .newMobile { display: none; }
 .newBtn { display: inline-block; }
 .pageBtn {
@@ -287,6 +309,59 @@
   z-index: 850; /* abaixo do sidebar */
 }
 
+/* Modal de confirmação de deleção */
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 2400;
+}
+.confirm {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2401;
+}
+.confirmCard {
+  width: min(560px, 92vw);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  padding: 18px 20px 14px;
+}
+.confirmTitle {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #3d474f;
+}
+.confirmText {
+  margin: 0 0 14px;
+  color: #4b5661;
+}
+.confirmActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.btn {
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.primary {
+  background: var(--color-accent);
+  color: #0d1012;
+  font-weight: 800;
+}
+.muted {
+  background: #e7eef0;
+  color: #4b5661;
+  font-weight: 700;
+}
+
 /* Responsividade */
 @media (max-width: 920px) {
   .header {
@@ -310,11 +385,29 @@
   .tableWrap {
     display: none;
   }
+  .actionsCol, .actions { display: none; }
   .cards {
     display: grid;
   }
   .cardRow {
     margin-top: 15px;
+  }
+  .cardActions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .cardActionBtn {
+    border: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #e7eef0;
+    color: #4b5661;
+  }
+  .cardDanger {
+    background: #ffe8e6;
+    color: #c62828;
   }
   .newBtn { display: none; }
   .newMobile { display: block; margin-top: 10px; text-align: center; }

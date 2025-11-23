@@ -19,18 +19,20 @@ type CreateCustomerDocuments = {
   smtr_permission_number?: string
   smtr_permission_image?: string
   smtr_ratr_number?: string
+  course_due_date?: string
 }
 
 export type CreateCustomerRequest = {
   tax_type: 'CPF' | 'CNPJ'
   tax_id: string
   full_name: string
-  gender?: 'male' | 'female' | 'other'
+  gender: string
   email?: string
   birth_date?: string
   customer_type?: string
   civil_status?: string
   tel_number: string
+  customer_image?: string
   address: CreateCustomerAddress
   documents: CreateCustomerDocuments
 }
@@ -63,6 +65,43 @@ export async function createCustomer(payload: CreateCustomerRequest): Promise<vo
       detail = json?.detail ?? json?.message
     } catch {}
     throw new Error(detail ?? `Erro ao cadastrar cliente (${detail})`)
+  }
+}
+
+export async function updateCustomer(customerId: string | number, payload: CreateCustomerRequest): Promise<void> {
+  const baseUrl = getBaseUrl()
+  const url = `${baseUrl}/customers/${encodeURIComponent(String(customerId))}/`
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    credentials: getCredentialsMode(),
+    body: JSON.stringify(payload)
+  })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const json = await res.json()
+      detail = json?.detail ?? json?.message
+    } catch {}
+    throw new Error(detail ?? `Erro ao atualizar cliente (${res.status})`)
+  }
+}
+
+export async function deleteCustomer(customerId: string | number): Promise<void> {
+  const baseUrl = getBaseUrl()
+  const url = `${baseUrl}/customers/${encodeURIComponent(String(customerId))}/`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    credentials: getCredentialsMode(),
+    headers: { Accept: 'application/json' }
+  })
+  if (!res.ok) {
+    let detail: string | undefined
+    try {
+      const json = await res.json()
+      detail = json?.detail ?? json?.message
+    } catch {}
+    throw new Error(detail ?? `Erro ao excluir cliente (${res.status})`)
   }
 }
 

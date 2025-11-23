@@ -13,6 +13,7 @@ type DrawerDocuments = {
   driverLicenseExpiration?: string
   smtrPermissionNumber?: string
   smtrRatrNumber?: string
+  courseDueDate?: string
   photoImage?: string
   driverLicenseImage?: string
   smtrPermissionImage?: string
@@ -28,6 +29,13 @@ type Props = {
 
 function formatDate(iso?: string) {
   if (!iso) return ''
+  // Evita deslocamento de fuso para datas-only (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, d] = iso.split('-').map(Number)
+    const day = String(d).padStart(2, '0')
+    const month = String(m).padStart(2, '0')
+    return `${day}/${month}/${y}`
+  }
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('pt-BR')
@@ -51,6 +59,7 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
   if (!client) return null
   const [visible, setVisible] = React.useState(false)
   const [showMap, setShowMap] = React.useState(false)
+  const [showPhoto, setShowPhoto] = React.useState(false)
   React.useEffect(() => {
     // Defer to next frame to allow CSS transition from translateX(100%) -> 0
     const id = requestAnimationFrame(() => setVisible(true))
@@ -113,7 +122,12 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
                 {loading ? (
                   <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} />
                 ) : documents?.photoImage ? (
-                  <img src={documents.photoImage} alt="Foto do cliente" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                  <img
+                    src={documents.photoImage}
+                    alt="Foto do cliente"
+                    onClick={() => setShowPhoto(true)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }}
+                  />
                 ) : (
                   'Sem foto cadastrada'
                 )}
@@ -216,6 +230,10 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
             <div className={styles.label}>RATR</div>
             <div className={styles.value}>{loading ? <Skel w="30%" /> : (documents?.smtrRatrNumber)}</div>
           </div>
+          <div className={styles.field}>
+            <div className={styles.label}>Data do Curso 168</div>
+            <div className={styles.value}>{loading ? <Skel w="40%" /> : formatDate(documents?.courseDueDate)}</div>
+          </div>
 
           <div className={[styles.section, styles.full].join(' ')}>
             <div className={styles.label}>Endereço</div>
@@ -238,6 +256,15 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
           title="Endereço do Cliente"
           onClose={() => setShowMap(false)}
         />
+      )}
+      {!loading && documents?.photoImage && showPhoto && (
+        <>
+          <div className={styles.photoBackdrop} onClick={() => setShowPhoto(false)} />
+          <div className={styles.photoModal}>
+            <img className={styles.photoFull} src={documents.photoImage} alt="Foto do cliente" />
+            <button className={styles.backBtn} onClick={() => setShowPhoto(false)}>Voltar</button>
+          </div>
+        </>
       )}
     </>
   )

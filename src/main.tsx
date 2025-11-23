@@ -23,7 +23,9 @@ const router = createBrowserRouter([
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/relatorio-clientes', element: <ClientsReportPage /> },
           { path: '/clientes', element: <ClientRegisterPage /> },
-          { path: '/veiculos', element: <NewVehiclePage /> }
+          { path: '/clientes/editar/:id', element: <ClientRegisterPage /> },
+          { path: '/veiculos', element: <NewVehiclePage /> },
+          { path: '/veiculos/editar/:id', element: <NewVehiclePage /> }
         ]
       }
     ]

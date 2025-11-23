@@ -157,6 +157,39 @@
   font-weight: 700;
 }
 
+.photoBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 2400;
+}
+.photoModal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2401;
+  padding: 16px;
+}
+.photoFull {
+  max-width: min(92vw, 980px);
+  max-height: 78vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  object-fit: contain;
+  background: #000;
+}
+.backBtn {
+  margin-top: 14px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 800;
+  background: #e7eef0;
+  color: #4b5661;
+  cursor: pointer;
+}
+
 /* Responsividade do drawer de cliente/veículo */
 @media (max-width: 920px) {
   .content {

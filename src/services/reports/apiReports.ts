@@ -16,10 +16,11 @@ export type CustomerDetails = {
   tax_type: 'CPF' | 'CNPJ'
   tax_id: string
   full_name: string
-  gender?: 'male' | 'female' | 'other'
+  customer_image?: string
+  gender: string
   email?: string
   birth_date?: string
-  customer_type?: string
+  customer_type: string
   civil_status?: string
   tel_number: string
   address: {
@@ -42,6 +43,7 @@ export type CustomerDetails = {
     smtr_permission_number?: string
     smtr_permission_image?: string
     smtr_ratr_number?: string
+    course_due_date?: string
   }
 }
 
