@@ -59,7 +59,7 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
   if (!client) return null
   const [visible, setVisible] = React.useState(false)
   const [showMap, setShowMap] = React.useState(false)
-  const [showPhoto, setShowPhoto] = React.useState(false)
+  const [photoModalUrl, setPhotoModalUrl] = React.useState<string | null>(null)
   React.useEffect(() => {
     // Defer to next frame to allow CSS transition from translateX(100%) -> 0
     const id = requestAnimationFrame(() => setVisible(true))
@@ -125,7 +125,7 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
                   <img
                     src={documents.photoImage}
                     alt="Foto do cliente"
-                    onClick={() => setShowPhoto(true)}
+                    onClick={() => setPhotoModalUrl(documents.photoImage!)}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }}
                   />
                 ) : (
@@ -136,7 +136,12 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
                 {loading ? (
                   <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} />
                 ) : documents?.driverLicenseImage ? (
-                  <img src={documents.driverLicenseImage} alt="Documento do cliente" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                  <img
+                    src={documents.driverLicenseImage}
+                    alt="Documento do cliente"
+                    onClick={() => setPhotoModalUrl(documents.driverLicenseImage!)}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }}
+                  />
                 ) : (
                   'Sem documento cadastrado'
                 )}
@@ -146,7 +151,12 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
                   {loading ? (
                     <span className={[styles.skeleton, styles.skeletonBlock].join(' ')} />
                   ) : documents?.smtrPermissionImage ? (
-                    <img src={documents.smtrPermissionImage} alt="Permissão SMTR" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                    <img
+                      src={documents.smtrPermissionImage}
+                      alt="Permissão SMTR"
+                      onClick={() => setPhotoModalUrl(documents.smtrPermissionImage!)}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }}
+                    />
                   ) : (
                     'Sem permissão registrada'
                   )}
@@ -257,12 +267,12 @@ export default function ClientDetailsDrawer({ open, client, onClose, loading, do
           onClose={() => setShowMap(false)}
         />
       )}
-      {!loading && documents?.photoImage && showPhoto && (
+      {!loading && photoModalUrl && (
         <>
-          <div className={styles.photoBackdrop} onClick={() => setShowPhoto(false)} />
+          <div className={styles.photoBackdrop} onClick={() => setPhotoModalUrl(null)} />
           <div className={styles.photoModal}>
-            <img className={styles.photoFull} src={documents.photoImage} alt="Foto do cliente" />
-            <button className={styles.backBtn} onClick={() => setShowPhoto(false)}>Voltar</button>
+            <img className={styles.photoFull} src={photoModalUrl} alt="Imagem" />
+            <button className={styles.backBtn} onClick={() => setPhotoModalUrl(null)}>Voltar</button>
           </div>
         </>
       )}

@@ -16,6 +16,13 @@ export default function VehicleDetailsDrawer({
   error?: string | null
   onClose: () => void
 }) {
+  const [photoModalUrl, setPhotoModalUrl] = React.useState<string | null>(null)
+  function toTitleCase(value?: string | number | null): string {
+    if (value == null) return '-'
+    const s = String(value).replace(/[_\-]+/g, ' ').trim().toLowerCase()
+    if (!s) return '-'
+    return s.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  }
   React.useEffect(() => {
     if (open) {
       lockScroll('veh-details')
@@ -33,6 +40,27 @@ export default function VehicleDetailsDrawer({
           <button className={styles.close} onClick={onClose}>✕</button>
         </header>
         <div className={styles.content}>
+          {/* CRLV primeiro */}
+          <div className={[styles.section, styles.full].join(' ')}>
+            <div className={styles.label}>CRLV</div>
+          </div>
+          <div className={[styles.full].join(' ')}>
+            {loading ? (
+              <div className={styles.docBox}><span className={`${styles.skeleton} ${styles.skeletonBlock}`} /></div>
+            ) : vehicle?.crlv_image ? (
+              <div className={styles.docBox}>
+                <img
+                  src={vehicle.crlv_image}
+                  alt="CRLV"
+                  onClick={() => setPhotoModalUrl(vehicle.crlv_image!)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in' }}
+                />
+              </div>
+            ) : (
+              <div className={styles.docBox}>Sem CRLV</div>
+            )}
+          </div>
+
           {error && (
             <div className={[styles.full, styles.danger].join(' ')} role="alert" style={{ marginBottom: 4 }}>
               {error}
@@ -77,7 +105,7 @@ export default function VehicleDetailsDrawer({
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Categoria</div>
-            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.category || '-')}</div>
+            <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : toTitleCase(vehicle?.category as any)}</div>
           </div>
           <div className={styles.field}>
             <div className={styles.label}>Certificação</div>
@@ -88,18 +116,17 @@ export default function VehicleDetailsDrawer({
             <div className={styles.value}>{loading ? <span className={`${styles.skeleton} ${styles.skeletonSmall}`} /> : (vehicle?.last_legalization_year ?? '-')}</div>
           </div>
 
-          <div className={[styles.section, styles.full].join(' ')}>
-            <div className={styles.label}>CRLV</div>
-          </div>
-          <div className={[styles.full].join(' ')}>
-            {loading
-              ? <div className={styles.docBox}><span className={`${styles.skeleton} ${styles.skeletonBlock}`} /></div>
-              : (vehicle?.crlv_image
-                ? <img src={vehicle.crlv_image} alt="CRLV" style={{ maxWidth: '100%', borderRadius: 8 }} />
-                : <div className={styles.docBox}>Sem CRLV</div>)}
-          </div>
         </div>
       </aside>
+      {photoModalUrl && (
+        <>
+          <div className={styles.photoBackdrop} onClick={() => setPhotoModalUrl(null)} />
+          <div className={styles.photoModal}>
+            <img className={styles.photoFull} src={photoModalUrl} alt="Documento" />
+            <button className={styles.backBtn} onClick={() => setPhotoModalUrl(null)}>Voltar</button>
+          </div>
+        </>
+      )}
     </>
   )
 }

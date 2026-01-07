@@ -14,6 +14,8 @@ export type VehicleData = {
   fuel?: string
   category?: string
   docPhotoUrl?: string
+  // Base64 (sem prefixo) da imagem para envio à API
+  docPhoto?: string
 }
 
 export type VehicleRegisterState = {

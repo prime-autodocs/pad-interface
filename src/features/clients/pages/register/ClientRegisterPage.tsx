@@ -6,6 +6,58 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { createCustomer, type CreateCustomerRequest, updateCustomer } from '@services/customers/apiCustomers'
 import { fetchCustomerDetails } from '@services/reports/apiReports'
 
+// Utilidade: comprimir imagem no cliente e retornar base64 (sem prefixo) + URL para preview
+async function compressImageToBase64(
+  file: File,
+  options: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string } = {}
+): Promise<{ base64: string; previewUrl: string }> {
+  const { maxWidth = 1200, maxHeight = 1200, quality = 0.75, mimeType = 'image/jpeg' } = options
+  // Lê como DataURL para carregar em Image
+  const dataUrl: string = await new Promise<string>((resolve, reject) => {
+    const fr = new FileReader()
+    fr.onerror = () => reject(new Error('Falha ao ler arquivo'))
+    fr.onload = () => resolve(String(fr.result || ''))
+    fr.readAsDataURL(file)
+  })
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image()
+    i.onload = () => resolve(i)
+    i.onerror = () => reject(new Error('Falha ao carregar imagem'))
+    i.src = dataUrl
+  })
+  const { naturalWidth, naturalHeight } = img
+  // Calcula dimensões mantendo proporção
+  let targetW = naturalWidth
+  let targetH = naturalHeight
+  const ratio = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight, 1)
+  targetW = Math.round(naturalWidth * ratio)
+  targetH = Math.round(naturalHeight * ratio)
+  const canvas = document.createElement('canvas')
+  canvas.width = targetW
+  canvas.height = targetH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas não suportado')
+  ctx.drawImage(img, 0, 0, targetW, targetH)
+  // Converte para Blob comprimido
+  const blob: Blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (!b) return reject(new Error('Falha ao comprimir imagem'))
+      resolve(b as Blob)
+    }, mimeType, quality)
+  })
+  // Gera preview da imagem comprimida
+  const previewUrl: string = URL.createObjectURL(blob)
+  // Converte blob para base64 e remove o prefixo
+  const base64WithPrefix: string = await new Promise<string>((resolve, reject) => {
+    const fr = new FileReader()
+    fr.onerror = () => reject(new Error('Falha ao ler blob'))
+    fr.onload = () => resolve(String(fr.result || ''))
+    fr.readAsDataURL(blob)
+  })
+  const base64 = base64WithPrefix.includes(',') ? base64WithPrefix.split(',')[1] : base64WithPrefix
+  return { base64: base64 as string, previewUrl: previewUrl as string }
+}
+
 function isValidCPF(doc: string) {
   const d = doc.replace(/\D/g, '')
   return d.length === 11
@@ -139,17 +191,21 @@ function PersonalStep({ onNext }: { onNext: () => void }) {
           </div>
           <div className={styles.upload}>
             <button className={`${styles.btn} ${styles.primary}`} onClick={() => fileRef.current?.click()}>Carregar imagem</button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => {
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={async (e) => {
               const f = e.target.files?.[0]
-              if (f) {
-                const objectUrl = URL.createObjectURL(f)
-                const reader = new FileReader()
-                reader.onload = () => {
-                  const res = String(reader.result || '')
+              if (!f) return
+              try {
+                const { base64, previewUrl } = await compressImageToBase64(f, { maxWidth: 1200, maxHeight: 1200, quality: 0.75 })
+                setPersonal({ photoUrl: previewUrl, customerImage: base64 })
+              } catch {
+                // fallback para leitura direta caso compressão falhe
+                const fr = new FileReader()
+                fr.onload = () => {
+                  const res = String(fr.result || '')
                   const base64 = res.includes(',') ? res.split(',')[1] : res
-                  setPersonal({ photoUrl: objectUrl, customerImage: base64 })
+                  setPersonal({ photoUrl: URL.createObjectURL(f), customerImage: base64 })
                 }
-                reader.readAsDataURL(f)
+                fr.readAsDataURL(f)
               }
             }} />
           </div>
@@ -220,28 +276,64 @@ function DocumentsStep({ onNext, onBack }: { onNext: () => void; onBack: () => v
           <div>
             <div className={styles.sideTitle} style={{ marginBottom: 8 }}>Foto da CNH</div>
             <div className={styles.preview}>
-              {data.docs.photoCnh ? <img src={data.docs.photoCnh} alt="Foto da CNH" /> : 'Foto da CNH'}
+              {data.docs.photoCnhPreview ? <img src={data.docs.photoCnhPreview} alt="Foto da CNH" /> : 'Foto da CNH'}
             </div>
             <div className={styles.upload}>
               <button className={`${styles.btn} ${styles.primary}`} onClick={() => cnhInputRef.current?.click()}>Carregar imagem</button>
-              <input ref={cnhInputRef} type="file" accept="image/*" hidden onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) setDocs({ photoCnh: URL.createObjectURL(f) })
-              }} />
+              <input
+                ref={cnhInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  try {
+                    const { base64, previewUrl } = await compressImageToBase64(f, { maxWidth: 1200, maxHeight: 1200, quality: 0.75 })
+                    setDocs({ photoCnhPreview: previewUrl, photoCnh: base64 })
+                  } catch {
+                    const fr = new FileReader()
+                    fr.onload = () => {
+                      const res = String(fr.result || '')
+                      const base64 = res.includes(',') ? res.split(',')[1] : res
+                      setDocs({ photoCnhPreview: URL.createObjectURL(f), photoCnh: base64 })
+                    }
+                    fr.readAsDataURL(f)
+                  }
+                }}
+              />
             </div>
           </div>
 
           <div className={styles.group}>
             <div className={styles.sideTitle} style={{ marginBottom: 8 }}>Foto da Permissão</div>
             <div className={styles.preview}>
-              {data.docs.photoPermissao ? <img src={data.docs.photoPermissao} alt="Foto da Permissão" /> : 'Foto da Permissão'}
+              {data.docs.photoPermissaoPreview ? <img src={data.docs.photoPermissaoPreview} alt="Foto da Permissão" /> : 'Foto da Permissão'}
             </div>
             <div className={styles.upload}>
               <button className={`${styles.btn} ${styles.primary}`} onClick={() => permInputRef.current?.click()}>Carregar imagem</button>
-              <input ref={permInputRef} type="file" accept="image/*" hidden onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) setDocs({ photoPermissao: URL.createObjectURL(f) })
-              }} />
+              <input
+                ref={permInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  try {
+                    const { base64, previewUrl } = await compressImageToBase64(f, { maxWidth: 1200, maxHeight: 1200, quality: 0.75 })
+                    setDocs({ photoPermissaoPreview: previewUrl, photoPermissao: base64 })
+                  } catch {
+                    const fr = new FileReader()
+                    fr.onload = () => {
+                      const res = String(fr.result || '')
+                      const base64 = res.includes(',') ? res.split(',')[1] : res
+                      setDocs({ photoPermissaoPreview: URL.createObjectURL(f), photoPermissao: base64 })
+                    }
+                    fr.readAsDataURL(f)
+                  }
+                }}
+              />
             </div>
           </div>
         </aside>
@@ -391,7 +483,7 @@ function SummaryModal({
           </ul>
           {errorMessage && (
             <div className={styles.error} role="alert" style={{ gridColumn: '1 / -1', margin: '0 0 6px 0' }}>
-              {errorMessage}
+              Erro ao cadastrar cliente - Entre em contato com o suporte
             </div>
           )}
           <div className={styles.summaryFooter}>
@@ -481,7 +573,9 @@ function Content() {
           maritalStatus: det.civil_status,
           sex: det.gender,
           phone: det.tel_number,
-          email: det.email
+          email: det.email,
+          // mantém a foto existente apenas para preview; não envia no PATCH a menos que o usuário troque
+          photoUrl: (det as any).customer_image || undefined
         })
         setDocs({
           rg: det.documents.identity_number,
@@ -492,7 +586,10 @@ function Content() {
           validadeCnh: det.documents.driver_license_expiration,
           numeroPermissao: det.documents.smtr_permission_number,
           ratr: det.documents.smtr_ratr_number,
-          courseDueDate: (det as any).documents?.course_due_date
+          courseDueDate: (det as any).documents?.course_due_date,
+          // Previews vindos da API (URL)
+          photoCnhPreview: det.documents.driver_license_image,
+          photoPermissaoPreview: det.documents.smtr_permission_image
         })
         setAddress({
           cep: det.address.zip_code,

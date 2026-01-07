@@ -111,6 +111,7 @@ export type AvailableCustomer = {
   id?: string | number
   name: string
   tax_id: string
+  tel_number?: string
 }
 
 export async function fetchAvailableCustomers(params: { search?: string; field_selected?: 'name' | 'cpf' | 'cnpj' } = {}): Promise<AvailableCustomer[]> {

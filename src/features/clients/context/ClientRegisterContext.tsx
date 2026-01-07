@@ -27,8 +27,12 @@ export type DocumentsData = {
   numeroPermissao?: string
   ratr?: string
   courseDueDate?: string
+  // Base64 (sem prefixo) para enviar à API
   photoCnh?: string
   photoPermissao?: string
+  // URLs para preview (ObjectURL ou URL absoluta)
+  photoCnhPreview?: string
+  photoPermissaoPreview?: string
 }
 
 export type AddressData = {

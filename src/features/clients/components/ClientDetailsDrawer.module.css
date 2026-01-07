@@ -106,7 +106,7 @@
   gap: 12px;
 }
 .docBox {
-  height: 120px;
+  height: 200px;
   background: #e7eef0;
   border-radius: 8px;
   display: grid;
@@ -115,6 +115,16 @@
   font-weight: 600;
   text-align: center;
   padding: 8px;
+  overflow: hidden; /* impede vazamento da imagem */
+  position: relative;
+}
+/* garante que as imagens fiquem contidas e recortadas dentro da caixa */
+.docBox > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
 }
 .skeleton {
   display: inline-block;

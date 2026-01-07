@@ -7,15 +7,66 @@ import { fetchAvailableCustomers } from '@services/customers/apiCustomers'
 import { createVehicle, updateVehicle } from '@services/vehicles/apiVehicles'
 import { fetchVehicleDetails } from '@services/reports/apiReports'
 
+// Util: comprimir imagem em JPEG e retornar base64 (sem prefixo) + preview URL
+async function compressImageToBase64(
+  file: File,
+  options: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string } = {}
+): Promise<{ base64: string; previewUrl: string }> {
+  const { maxWidth = 1200, maxHeight = 1200, quality = 0.75, mimeType = 'image/jpeg' } = options
+  const dataUrl: string = await new Promise<string>((resolve, reject) => {
+    const fr = new FileReader()
+    fr.onerror = () => reject(new Error('Falha ao ler arquivo'))
+    fr.onload = () => resolve(String(fr.result || ''))
+    fr.readAsDataURL(file)
+  })
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image()
+    i.onload = () => resolve(i)
+    i.onerror = () => reject(new Error('Falha ao carregar imagem'))
+    i.src = dataUrl
+  })
+  const ratio = Math.min(maxWidth / img.naturalWidth, maxHeight / img.naturalHeight, 1)
+  const w = Math.round(img.naturalWidth * ratio)
+  const h = Math.round(img.naturalHeight * ratio)
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas não suportado')
+  ctx.drawImage(img, 0, 0, w, h)
+  const blob: Blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (!b) return reject(new Error('Falha ao comprimir imagem'))
+      resolve(b as Blob)
+    }, mimeType, quality)
+  })
+  const previewUrl = URL.createObjectURL(blob)
+  const base64WithPrefix: string = await new Promise<string>((resolve, reject) => {
+    const fr = new FileReader()
+    fr.onerror = () => reject(new Error('Falha ao ler blob'))
+    fr.onload = () => resolve(String(fr.result || ''))
+    fr.readAsDataURL(blob)
+  })
+  const base64 = base64WithPrefix.includes(',') ? base64WithPrefix.split(',')[1] : base64WithPrefix
+  return { base64: base64 as string, previewUrl: previewUrl as string }
+}
+
 function normalize(str: string) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+function formatPhone(phone?: string) {
+  if (!phone) return ''
+  const d = phone.replace(/\D/g, '')
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 3)}${d.slice(3, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return phone
 }
 function fromApiCategory(value?: string): string | undefined {
   if (!value) return undefined
   const v = normalize(String(value))
   const map: Record<string, string> = {
-    'particular': 'Particular',
-    'aluguel': 'Aluguel'
+    'Particular': 'particular',
+    'Aluguel': 'aluguel'
   }
   return map[v]
 }
@@ -77,7 +128,7 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
   const [mode, setMode] = React.useState<Mode>('nome')
   const [q, setQ] = React.useState('')
   const [open, setOpen] = React.useState(false)
-  const [results, setResults] = React.useState<Array<{ id?: string | number; name: string; tax_id: string }>>([])
+  const [results, setResults] = React.useState<Array<{ id?: string | number; name: string; tax_id: string; tel_number?: string }>>([])
   const [loading, setLoading] = React.useState(false)
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null)
   const [selected, setSelected] = React.useState<{
@@ -115,7 +166,7 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
     setSelected(null)
   }
 
-  function onSelect(item: { id?: string | number; name: string; tax_id: string }) {
+  function onSelect(item: { id?: string | number; name: string; tax_id: string; tel_number?: string }) {
     const digits = item.tax_id.replace(/\D/g, '')
     const documentType: 'CPF' | 'CNPJ' = digits.length === 14 ? 'CNPJ' : 'CPF'
     const mapped = {
@@ -123,7 +174,7 @@ function SelectClientStep({ onNext }: { onNext: () => void }) {
       nome: item.name,
       documentType,
       document: digits || item.tax_id,
-      phone: undefined
+      phone: formatPhone(item.tel_number)
     }
     setSelected(mapped)
     setQ(item.name)
@@ -269,9 +320,11 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
     if (!data.vehicle.plate || !isValidPlate(data.vehicle.plate)) e.plate = 'Placa inválida. Use ABC1D23.'
     if (!data.vehicle.chassis || !data.vehicle.chassis.trim()) e.chassis = 'Chassi é obrigatório.'
     else if (!isValidChassis(data.vehicle.chassis)) e.chassis = 'Chassi inválido: não iniciar com 0, sem Q/O/I e sem 6 dígitos consecutivos.'
-    if (data.vehicle.renavam && !isValidRenavam(data.vehicle.renavam)) e.renavam = 'Renavam deve ter 11 dígitos.'
+    if (!data.vehicle.renavam) e.renavam = 'Renavam é obrigatório.'
+    else if (!isValidRenavam(data.vehicle.renavam)) e.renavam = 'Renavam deve ter 11 dígitos.'
     if (!data.vehicle.year || !isNumeric(data.vehicle.year)) e.year = 'Ano é obrigatório.'
     if (!data.vehicle.modelYear || !isNumeric(data.vehicle.modelYear)) e.modelYear = 'Modelo é obrigatório.'
+    if (!data.vehicle.fuel) e.fuel = 'Combustível é obrigatório.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -345,6 +398,7 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
               <option>Diesel</option>
               <option>Elétrico</option>
             </select>
+            {errors.fuel && <div className={styles.error}>{errors.fuel}</div>}
 
             <div className={styles.label}>Categoria</div>
             <select className={styles.select} value={data.vehicle.category || ''} onChange={(e) => setVehicle({ category: e.target.value })}>
@@ -360,10 +414,29 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
             </div>
             <div className={styles.upload}>
               <button className={`${styles.btn} ${styles.primary}`} onClick={() => (document.getElementById('veh-doc-input') as HTMLInputElement)?.click()}>Carregar imagem</button>
-              <input id="veh-doc-input" type="file" accept="image/*" hidden onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) setVehicle({ docPhotoUrl: URL.createObjectURL(f) })
-              }} />
+              <input
+                id="veh-doc-input"
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  if (!f) return
+                  try {
+                    const { base64, previewUrl } = await compressImageToBase64(f)
+                    setVehicle({ docPhotoUrl: previewUrl, docPhoto: base64 })
+                  } catch {
+                    // Fallback sem compressão
+                    const fr = new FileReader()
+                    fr.onload = () => {
+                      const res = String(fr.result || '')
+                      const base64 = res.includes(',') ? res.split(',')[1] : res
+                      setVehicle({ docPhotoUrl: URL.createObjectURL(f), docPhoto: base64 })
+                    }
+                    fr.readAsDataURL(f)
+                  }
+                }}
+              />
             </div>
           </aside>
         </div>
@@ -417,7 +490,7 @@ function SummaryModal({
           </ul>
           {errorMessage && (
             <div className={styles.error} role="alert" style={{ gridColumn: '1 / -1', margin: '0 0 6px 0' }}>
-              {errorMessage}
+              Erro ao cadastrar veículo - Entre em contato com o suporte
             </div>
           )}
           <div className={styles.summaryFooter}>
@@ -452,17 +525,42 @@ function Success({ onNew }: { onNew: () => void }) {
 }
 
 function Content() {
-  const [step, setStep] = React.useState<'select' | 'docs' | 'success'>('select')
+  const params = useParams()
+  const location = useLocation() as any
+  const initialStep: 'select' | 'docs' = params.id ? 'docs' : 'select'
+  const [step, setStep] = React.useState<'select' | 'docs' | 'success'>(initialStep)
   const [showSummary, setShowSummary] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
   const { data, setVehicle, setClient } = useVehicleRegister()
-  const params = useParams()
-  const location = useLocation() as any
   const editingVehicleId = params.id
 
   // Prefill for edit
   const [hasPrefilled, setHasPrefilled] = React.useState(false)
+  // If coming from Edit action, prefill client basics immediately using navigation state,
+  // so we land directly on the docs step without flashing the selection screen.
+  React.useEffect(() => {
+    if (!editingVehicleId) return
+    const st = (location?.state || {}) as { customer_id?: string | number; customer_name?: string; tax_id?: string }
+    if (st.customer_id || st.customer_name || st.tax_id) {
+      const tax = st.tax_id
+      let documentType: 'CPF' | 'CNPJ' = 'CPF'
+      let document = ''
+      if (tax) {
+        const digits = tax.replace(/\D/g, '')
+        documentType = digits.length === 14 ? 'CNPJ' : 'CPF'
+        document = digits
+      }
+      setClient({
+        id: st.customer_id ? String(st.customer_id) : (data.client?.id || ''),
+        nome: st.customer_name || data.client?.nome || '',
+        documentType,
+        document,
+        phone: data.client?.phone
+      })
+      setStep('docs')
+    }
+  }, [editingVehicleId])
   React.useEffect(() => {
     let active = true
     ;(async () => {
@@ -482,8 +580,10 @@ function Content() {
           crv: det.certification_number || '',
           // usa diretamente o valor retornado pela API para exibir no select;
           // se por algum motivo vier em outro formato, tenta converter
-          fuel: det.fuel || fromApiFuel(det.fuel),
-          category: det.category || fromApiCategory(det.category)
+          fuel: fromApiFuel(det.fuel) || det.fuel,
+          category: fromApiCategory(det.category) || det.category,
+          // preview de imagem existente (sem enviar no PATCH a menos que troque)
+          docPhotoUrl: det.crlv_image || undefined
         })
         const st = (location?.state || {}) as { customer_id?: string | number; customer_name?: string; tax_id?: string }
         const cid = det.customer_id ?? st.customer_id
@@ -528,7 +628,8 @@ function Content() {
       color: data.vehicle.color || undefined,
       category: toApiCategory(data.vehicle.category) || undefined,
       certification_number: data.vehicle.crv || undefined,
-      crlv_image: data.vehicle.docPhotoUrl || undefined
+      // envia os bytes base64 se usuário adicionou/trocou a imagem
+      crlv_image: data.vehicle.docPhoto || undefined
     }
     try {
       if (editingVehicleId) {
@@ -554,7 +655,7 @@ function Content() {
         // limpa os campos do veículo mas mantém o cliente selecionado
         setVehicle({
           brand: '', model: '', plate: '', chassis: '', renavam: '',
-          year: '', modelYear: '', color: '', crv: '', fuel: '', category: '', docPhotoUrl: undefined
+          year: '', modelYear: '', color: '', crv: '', fuel: '', category: '', docPhotoUrl: undefined, docPhoto: undefined
         })
         setStep('docs')
       }} />}
