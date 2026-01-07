@@ -65,8 +65,8 @@ function fromApiCategory(value?: string): string | undefined {
   if (!value) return undefined
   const v = normalize(String(value))
   const map: Record<string, string> = {
-    'Particular': 'particular',
-    'Aluguel': 'aluguel'
+    'Particular': 'Particular',
+    'Aluguel': 'Aluguel'
   }
   return map[v]
 }
@@ -74,8 +74,8 @@ function toApiCategory(label?: string): string | undefined {
   if (!label) return undefined
   const v = normalize(String(label))
   const map: Record<string, string> = {
-    'Particular': 'particular',
-    'Aluguel': 'aluguel'
+    'Particular': 'Particular',
+    'Aluguel': 'Aluguel'
   }
   return map[v]
 }
