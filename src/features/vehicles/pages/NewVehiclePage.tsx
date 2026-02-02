@@ -305,7 +305,6 @@ function VehicleDocsStep({ onBack, onSubmit }: { onBack: () => void; onSubmit: (
     const v = (chassis || '').toUpperCase()
     if (!v) return false
     if (v.startsWith('0')) return false
-    if (/[0-9]{6}/.test(v)) return false
     if (/[QOI]/.test(v)) return false
     return true
   }
